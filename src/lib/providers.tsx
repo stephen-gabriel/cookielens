@@ -6,7 +6,7 @@ import { StandardConnect, StandardDisconnect } from "@wallet-standard/features";
 import type { UiWallet } from "@wallet-standard/ui";
 import { getWalletFeature } from "@wallet-standard/ui";
 import { useWallets } from "@wallet-standard/react";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export interface WalletContextValue {
   wallets: readonly UiWallet[];
@@ -40,6 +40,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     },
     [connecting, connectedWallet],
   );
+
+  // Restore a previously-authorized wallet on page load (extensions re-register
+  // with their existing accounts after refresh).
+  useEffect(() => {
+    if (connectedWallet || connecting) return;
+    for (const wallet of wallets) {
+      if (wallet.accounts && wallet.accounts.length > 0) {
+        setAccount(wallet.accounts[0]);
+        setConnectedWallet(wallet);
+        break;
+      }
+    }
+  }, [wallets, connectedWallet, connecting]);
 
   const disconnect = useCallback(async () => {
     if (!connectedWallet) return;

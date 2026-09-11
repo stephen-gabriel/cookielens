@@ -10,6 +10,9 @@ export function WalletButton() {
   const { wallets, connectedWallet, account, connecting, connect, disconnect } = useWallet();
   const [open, setOpen] = useState(false);
 
+  const nightlyWallets = wallets.filter((w) => w.name.toLowerCase().includes("nightly"));
+  const connectTarget = nightlyWallets.find((w) => "standard:connect" in w.features) ?? nightlyWallets[0];
+
   if (connectedWallet && account) {
     return (
       <div className="flex items-center gap-3">
@@ -28,32 +31,44 @@ export function WalletButton() {
     );
   }
 
+  const handleConnect = async (wallet: (typeof wallets)[number]) => {
+    setOpen(false);
+    try {
+      await connect(wallet);
+      toast.success(`Connected ${wallet.name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Connection failed");
+    }
+  };
+
+  const uniqueWallets = wallets.filter(
+    (w, i) => wallets.findIndex((x) => x.name === w.name) === i,
+  );
+
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (connectTarget) {
+            handleConnect(connectTarget);
+          } else {
+            setOpen(!open);
+          }
+        }}
         disabled={connecting}
         className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition hover:bg-primary/90 disabled:opacity-60"
       >
-        {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect Wallet"}
+        {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect Nightly"}
       </button>
 
-      {open && wallets.length > 0 && (
+      {open && uniqueWallets.length > 0 && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-12 z-20 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
-            {wallets.map((wallet) => (
+            {uniqueWallets.map((wallet) => (
               <button
                 key={wallet.name}
-                onClick={async () => {
-                  setOpen(false);
-                  try {
-                    await connect(wallet);
-                    toast.success(`Connected ${wallet.name}`);
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Connection failed");
-                  }
-                }}
+                onClick={() => handleConnect(wallet)}
                 className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-text-primary transition hover:bg-surface-hover"
               >
                 {wallet.icon && (
@@ -66,7 +81,7 @@ export function WalletButton() {
         </>
       )}
 
-      {open && wallets.length === 0 && (
+      {open && uniqueWallets.length === 0 && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-12 z-20 w-72 rounded-lg border border-border bg-surface p-4 shadow-xl">
