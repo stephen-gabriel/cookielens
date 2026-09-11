@@ -1,4 +1,4 @@
-# CookiePump — Architecture Document
+# CookieLens — Architecture Document
 
 ## 1. System Diagram
 
@@ -7,51 +7,54 @@
 │                        CLIENT (Browser)                       │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    Next.js App Router                    │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌───────────┐  │  │
-│  │  │ Landing  │ │  Bake    │ │ Token   │ │  Explore  │  │  │
-│  │  │  Page    │ │  Page    │ │ Detail  │ │   Page    │  │  │
-│  │  └──────────┘ └──────────┘ └─────────┘ └───────────┘  │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌───────────┐   │  │
+│  │  │ Overview │ │ Portfolio│ │ Watch   │ │  Tokens   │   │  │
+│  │  │  (Home)  │ │  Page    │ │  Page   │ │   Page    │   │  │
+│  │  └──────────┘ └──────────┘ └─────────┘ └───────────┘   │  │
+│  │           ┌───────────┐                                  │  │
+│  │           │Token Detail│  (/token/[mint])                 │  │
+│  │           └───────────┘                                  │  │
 │  └────────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                   Shared Components                     │  │
-│  │  WalletProvider │ Toast Provider │ Layout │ Charts      │  │
+│  │  WalletProvider (wallet-standard) │ Header │ Toaster    │  │
+│  │  HoldingsTable │ TokenImage                            │  │
 │  └────────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    Hooks / Utils                        │  │
-│  │  useWallet │ usePool │ useToken │ useTransaction        │  │
+│  │  useWallet │ usePortfolio │ useCookUsdPrice            │  │
+│  │  chain.ts │ das.ts │ pricing.ts │ tx.ts │ format.ts    │  │
+│  │  constants.ts                                          │  │
 │  └────────────────────────────────────────────────────────┘  │
 └───────────────────────┬──────────────────────────────────────┘
-                        │ RPC + Wallet Signing
-                        ▼
+      read-only HTTPS (CORS: *)  +  one opt-in signed transaction
+                         ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                    COOKIE CHAIN (SVM)                         │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
-│  │  Metaplex    │ │ CookieBox    │ │ CookieBox            │ │
-│  │  Token       │ │ DBC          │ │ DAMM                 │ │
-│  │  Metadata    │ │ (Bonding     │ │ (Post-migration      │ │
-│  │  (Token      │ │  Curve)      │ │  liquidity)          │ │
-│  │  Creation)   │ │              │ │                      │ │
-│  └──────────────┘ └──────────────┘ └──────────────────────┘ │
-│  ┌──────────────────────────────────────────────────────────┐│
-│  │  SPL Token / Token-2022 / Associated Token Account       ││
-│  └──────────────────────────────────────────────────────────┘│
-└──────────────────────────────────────────────────────────────┘
-                        │
-                        ▼
+│  Cookie Chain RPC (rpc.cookiescan.io)                        │
+│  - getBalance       → native COOK (lamports)                  │
+│  - getTokenAccountsByOwner → SPL holdings                     │
+│  - getSignaturesForAddress → tx history                       │
+│  - getSlotHeight    → chain height                            │
+│  - getLatestBlockhash / sendRawTransaction / getSignatureStatus → Send COOK
+└───────────────────────┬──────────────────────────────────────┘
+                         ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                    EXTERNAL SERVICES                          │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
-│  │  Irys/       │ │ Cookiescan   │ │  Jupiter Price API   │ │
-│  │  Arweave     │ │ Explorer     │ │  (Token Prices)      │ │
-│  │  (Metadata)  │ │ (Tx Links)   │ │                      │ │
-│  └──────────────┘ └──────────────┘ └──────────────────────┘ │
+│  CookieScan DAS API (api.cookiescan.io)                      │
+│  - getAsset         → token metadata (name/symbol/image)      │
+│  - getAssetsByOwner → all assets for a wallet                 │
+│  - searchAssets     → discover fungible tokens                │
+└───────────────────────┬──────────────────────────────────────┘
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│  CoinGecko API (api.coingecko.com, id: cookie-2)             │
+│  - simple/price     → COOK/USD (60s client cache)             │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## 2. File/Folder Structure
+## 2. File / Folder Structure
 
 ```
-cookiepump/
+cookielens/
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -60,203 +63,99 @@ cookiepump/
 ├── ARCHITECTURE.md
 ├── next.config.ts
 ├── package.json
-├── tailwind.config.ts
 ├── tsconfig.json
-├── postcss.config.js
-├── public/
-│   ├── cookie-logo.svg
-│   ├── og-image.png
-│   └── favicon.ico
+├── postcss.config.mjs
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx                    # Root layout with providers
-│   │   ├── page.tsx                      # Landing page
-│   │   ├── globals.css                   # Global styles + Tailwind
-│   │   ├── bake/
-│   │   │   └── page.tsx                  # Token creation form
-│   │   ├── token/
-│   │   │   └── [mint]/
-│   │   │       └── page.tsx              # Token detail page
-│   │   ├── explore/
-│   │   │   └── page.tsx                  # Token explorer
-│   │   ├── dashboard/
-│   │   │   └── page.tsx                  # Creator dashboard
-│   │   └── api/
-│   │       ├── tokens/
-│   │       │   ├── route.ts              # List all tokens
-│   │       │   └── [mint]/
-│   │       │       ├── route.ts          # Token details + pool state
-│   │       │       └── trades/
-│   │       │           └── route.ts      # Recent trades for a token
+│   │   ├── layout.tsx                 # Root layout, WalletProvider, Header, Toaster
+│   │   ├── page.tsx                   # Overview (home): price widgets + feature cards
+│   │   ├── globals.css                # Dark theme tokens (Tailwind @theme)
+│   │   ├── portfolio/page.tsx         # Connected wallet holdings
+│   │   ├── watch/page.tsx             # Paste any address → holdings
+│   │   ├── tokens/page.tsx            # All fungible tokens, ranked by holders
+│   │   └── token/[mint]/page.tsx      # Token detail (DAS getAsset)
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Header.tsx                # Nav + wallet connect
-│   │   │   ├── Footer.tsx
-│   │   │   └── MobileNav.tsx
-│   │   ├── wallet/
-│   │   │   ├── WalletButton.tsx          # Connect/disconnect
-│   │   │   └── WalletBalance.tsx         # COOK balance display
-│   │   ├── token/
-│   │   │   ├── TokenCard.tsx             # Grid card for explorer
-│   │   │   ├── TokenHeader.tsx           # Name, symbol, image
-│   │   │   ├── TokenInfo.tsx             # Mint, supply, creator
-│   │   │   └── StatusBadge.tsx           # Baking/Baked/Migrated
-│   │   ├── bake/
-│   │   │   ├── BakeForm.tsx              # Token creation form
-│   │   │   ├── ImageUpload.tsx           # Drag-drop image upload
-│   │   │   └── BakeConfirm.tsx           # Review before submit
-│   │   ├── trading/
-│   │   │   ├── BondingCurveChart.tsx     # Price chart
-│   │   │   ├── BuyPanel.tsx              # Buy interface
-│   │   │   ├── SellPanel.tsx             # Sell interface
-│   │   │   └── ProgressToMigration.tsx   # Migration progress
-│   │   └── ui/
-│   │       ├── Button.tsx
-│   │       ├── Input.tsx
-│   │       ├── Card.tsx
-│   │       ├── Badge.tsx
-│   │       ├── Toast.tsx
-│   │       ├── Skeleton.tsx
-│   │       └── Modal.tsx
+│   │   ├── layout/Header.tsx          # Nav + WalletButton
+│   │   ├── wallet/WalletButton.tsx    # wallet-standard connect/disconnect
+│   │   ├── wallet/SendCookPanel.tsx   # Send COOK form + tx status machine
+│   │   └── portfolio/HoldingsTable.tsx# Shared holdings table + TokenImage
 │   ├── hooks/
-│   │   ├── useConnection.ts              # Cookie Chain RPC connection
-│   │   ├── useWallet.ts                  # Wallet state + helpers
-│   │   ├── usePool.ts                    # DBC pool state reader
-│   │   ├── useToken.ts                   # Token metadata reader
-│   │   ├── useCreateToken.ts             # Metaplex token creation
-│   │   ├── useInitializePool.ts          # DBC pool initialization
-│   │   ├── useBuyTokens.ts               # DBC buy instruction
-│   │   ├── useSellTokens.ts              # DBC sell instruction
-│   │   ├── useTransaction.ts             # Tx confirmation helper
-│   │   └── useTokenList.ts               # Explorer token list
-│   ├── lib/
-│   │   ├── constants.ts                  # Program IDs, RPC URLs
-│   │   ├── providers.tsx                 # Wallet adapter provider
-│   │   ├── dbc.ts                        # CookieBox DBC IDL + helpers
-│   │   ├── metaplex.ts                   # Metaplex Umi setup
-│   │   ├── pool.ts                       # Pool state derivation
-│   │   ├── metadata.ts                   # Metadata upload helpers
-│   │   ├── price.ts                      # Price calculation utils
-│   │   └── format.ts                     # Number/address formatting
-│   ├── idl/
-│   │   └── dynamic_bonding_curve.json    # CookieBox DBC IDL
-│   └── types/
-│       ├── token.ts                      # Token type definitions
-│       ├── pool.ts                       # Pool type definitions
-│       └── trade.ts                      # Trade type definitions
-└── tests/
-    ├── hooks/
-    │   └── usePool.test.ts
-    └── lib/
-        └── price.test.ts
+│   │   └── usePortfolio.ts            # Reads balances + assets + price for an address
+│   └── lib/
+│       ├── constants.ts               # RPC/DAS/Coingecko URLs, COOK mint, program IDs
+│       ├── providers.tsx              # wallet-standard React provider (connect/restore/disconnect)
+│       ├── nightly.ts                 # Cookie Chain network switch for Nightly
+│       ├── chain.ts                   # RPC client (getBalance, getTokenBalances, sigs)
+│       ├── tx.ts                      # Build + sign + broadcast + confirm COOK transfer
+│       ├── das.ts                     # DAS client (getAsset, getAssetsByOwner, searchAssets)
+│       ├── pricing.ts                 # COOK/USD price + market data (CoinGecko, cached)
+│       └── format.ts                  # truncate, formatUsd, formatCompact, timeAgo
 ```
 
-## 3. Tech Stack Table
+## 3. Data Flow
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Framework | Next.js | 14+ | App Router, SSR, API routes |
-| Language | TypeScript | 5.x | Type safety |
-| Styling | Tailwind CSS | 4.x | Utility-first CSS |
-| Charts | Recharts | 2.x | Bonding curve visualization |
-| Wallet | @solana/wallet-adapter | Latest | Wallet connection |
-| Wallet Plugin | @nightly-app/wallet-adapter | Latest | Nightly support |
-| On-chain | @solana/web3.js | 2.x | Solana RPC interaction |
-| Anchor | @coral-xyz/anchor | Latest | IDL-based program interaction |
-| Metaplex Umi | @metaplex-foundation/umi | Latest | Token creation framework |
-| Metaplex Token | @metaplex-foundation/mpl-token-metadata | Latest | Fungible token creation |
-| Metaplex Upload | @metaplex-foundation/umi-uploader-irys | Latest | Metadata upload |
-| CookieBox DBC | Anchor IDL (custom) | 0.1.0 | Bonding curve program |
-| Notifications | react-hot-toast | Latest | Toast notifications |
-| Icons | lucide-react | Latest | UI icons |
-| Deployment | Vercel | N/A | Hosting |
+### Portfolio (any address)
+1. `usePortfolio(address)` fires on address change (parallel Promise.all):
+   - `getNativeBalance` → COOK lamports
+   - `getTokenBalances` → per-mint SPL amounts + decimals (jsonParsed)
+   - `getCookUsdPrice` → cached COOK/USD
+   - `getAssetsByOwner` → DAS asset metadata by mint
+   - `getRecentSignatures` → last blockTime for activity
+2. Holdings built: COOK first (native, always present), then SPL tokens.
+3. `valueUsd = priceUsd × amount`; `totalUsd = Σ valueUsd`.
+4. Request-race guard via `requestId` refs (stale responses discarded).
+
+### Token explorer
+1. `searchAssets({ tokenType: "fungible" })` → up to 100 assets.
+2. COOK pinned as row #1; remaining tokens deduplicated and sorted by `holderCount`.
+3. Price/change/MC columns render from DAS fields; missing → "—".
+
+### Send COOK
+1. `getLatestBlockhash("confirmed")` from Cookie Chain RPC → build a legacy `Transaction` with `SystemProgram.transfer` (fee payer = connected account).
+2. Serialize unsigned and request `solana:signTransaction` from the wallet (fallback: `solana:signAndSendTransaction`).
+3. CookieLens broadcasts via `sendRawTransaction` and polls `getSignatureStatus` until `confirmed`/`finalized` (60s timeout).
+4. Status machine drives inline text + a single React Hot Toast through: sign → broadcast → confirm → confirmed; success links to `cookiescan.io/tx/<sig>` and refreshes the portfolio.
+5. Failures (user rejection, insufficient COOK, on-chain error, timeout) surface inline and as an error toast.
 
 ## 4. Environment Variables
 
 ```env
 # .env.example
-
-# Cookie Chain RPC
+# Cookie Chain RPC (read-only)
 NEXT_PUBLIC_RPC_URL=https://rpc.cookiescan.io
-NEXT_PUBLIC_WSS_URL=wss.cookiescan.io
+NEXT_PUBLIC_WSS_URL=wss://wss.cookiescan.io
 
-# Cookie Chain Network
-NEXT_PUBLIC_CHAIN_NAME=cookie-chain
-NEXT_PUBLIC_CHAIN_ID=cookie-mainnet
+# DAS API (Metaplex Digital Asset Standard)
+NEXT_PUBLIC_DAS_URL=https://api.cookiescan.io
 
-# Program IDs (public, not secrets)
-NEXT_PUBLIC_DBC_PROGRAM_ID=DBCg4ugDEztk6MbqHEJvx5a5YGJTj45Jb5NvtQ48Rvsf
-NEXT_PUBLIC_DAMM_PROGRAM_ID=DAMMjDCEFTDkt7ywazZS8GoaLtjb3HaJo3pLbf64xrPY
-NEXT_PUBLIC_CLMM_PROGRAM_ID=CLMMmWqTtyNSomqXP3kETJy2SGKPdr31USsm4GfbLyKs
-NEXT_PUBLIC_METAPLEX_PROGRAM_ID=metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s
-NEXT_PUBLIC_SPL_TOKEN_PROGRAM_ID=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
-NEXT_PUBLIC_ATA_PROGRAM_ID=ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL
-
-# COOK Token (native token)
+# Native COOK token
 NEXT_PUBLIC_COOK_MINT=36ZrtQoab5MhhySaP1YSTwUahSk6GRVUTtZ6cuVfm9e1
 
-# Pool Authority PDA
-NEXT_PUBLIC_POOL_AUTHORITY=FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM
+# CoinGecko COOK price provider
+NEXT_PUBLIC_COOK_COINGECKO_ID=cookie-2
 
-# Metadata Upload (Irys)
-IRYS_PRIVATE_KEY=                    # Server-side only, never exposed
+# wallet-standard chain identifier for signing on Cookie Chain
+NEXT_PUBLIC_WALLET_STANDARD_CHAIN=solana:mainnet
 
-# Explorer
+# Network
+NEXT_PUBLIC_CHAIN_NAME=cookie-chain
 NEXT_PUBLIC_EXPLORER_URL=https://cookiescan.io
-NEXT_PUBLIC_BRIDGE_URL=https://hyperlane.cookiescan.io
 ```
 
-## 5. API Routes
+## 5. Key Decisions
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/tokens` | None | List all launched tokens (paginated) |
-| GET | `/api/tokens/[mint]` | None | Get token details + pool state |
-| POST | `/api/tokens` | Wallet signature | Register new token in index |
-| GET | `/api/tokens/[mint]/trades` | None | Get recent trades for a token |
+- **Read-heavy, single opt-in write:** the entire browsing surface uses free RPC/DAS/CoinGecko reads (no COOK, no funding, private keys never leave the wallet). One signing flow — **Send COOK** — satisfies the hackathon's required on-chain interaction (transaction execution + confirmation handling), using the wallet-standard `solana:signTransaction` feature with `solana:signAndSendTransaction` as fallback.
+- **wallet-standard (not legacy wallet-adapter):** Nightly supports the standard connect/sign features; `@wallet-standard/react` + `@wallet-standard/ui` are the canonical APIs.
+- **Self-contained data layer:** `chain.ts`, `das.ts`, `pricing.ts` are pure functions returning typed data, so screens stay UI-only.
+- **Pricing fallbacks:** COOK price is cached 60s in the module (not per-component); if CoinGecko fails, all USD columns degrade to "—" without crashing.
+- **No backend state:** CookieLens keeps no server-side database — all data is derived live from chain + APIs, which makes deployment trivial (static-ish Next.js on Vercel).
 
-## 6. Key Dependencies (package.json)
-
-```json
-{
-  "dependencies": {
-    "next": "^14.2.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "@solana/web3.js": "^2.0.0",
-    "@solana/wallet-adapter-base": "^0.9.0",
-    "@solana/wallet-adapter-react": "^0.15.0",
-    "@solana/wallet-adapter-react-ui": "^0.9.0",
-    "@solana/wallet-adapter-wallets": "^0.19.0",
-    "@coral-xyz/anchor": "^0.30.0",
-    "@metaplex-foundation/umi": "^1.0.0",
-    "@metaplex-foundation/umi-bundle-defaults": "^1.0.0",
-    "@metaplex-foundation/mpl-token-metadata": "^4.0.0",
-    "@metaplex-foundation/mpl-toolbox": "^1.0.0",
-    "@metaplex-foundation/umi-uploader-irys": "^1.0.0",
-    "recharts": "^2.12.0",
-    "react-hot-toast": "^2.4.0",
-    "bs58": "^6.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.0",
-    "@types/react": "^18.3.0",
-    "@types/node": "^20.0.0",
-    "tailwindcss": "^4.0.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "^14.2.0"
-  }
-}
-```
-
-## 7. Third-Party Services
+## 6. Third-Party Services
 
 | Service | Purpose | Why Used |
 |---------|---------|----------|
-| Cookie Chain RPC | Blockchain reads/writes | Primary chain interaction |
-| Irys (via Metaplex) | Metadata + image upload | Decentralized storage for token metadata |
-| Cookiescan.io | Transaction links | Explorer for tx verification |
-| Jupiter Price API | Token price data | Real-time price feeds |
-| Vercel | Deployment | Fast, free tier, Git integration |
+| Cookie Chain RPC (rpc.cookiescan.io) | Native COOK balance, token accounts, tx history | Official public RPC, CORS open |
+| CookieScan DAS API (api.cookiescan.io) | Token metadata, asset discovery | Standard Metaplex DAS interface |
+| CoinGecko API | COOK/USD price + market cap | Free, no key required, CORS open |
+| CookieScan explorer (cookiescan.io) | Transaction/mint links | User verification path |
+| Vercel | Deployment | Free tier, Git integration |

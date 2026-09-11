@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { WalletButton } from "@/components/wallet/WalletButton";
 
 const navItems = [
-  { href: "/", label: "Explore" },
-  { href: "/bake", label: "Bake" },
+  { href: "/", label: "Overview" },
+  { href: "/portfolio", label: "Portfolio" },
+  { href: "/tokens", label: "Tokens" },
+  { href: "/watch", label: "Watch" },
 ];
 
 export function Header() {
@@ -18,7 +20,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl">🍪</span>
           <span className="text-lg font-bold tracking-tight">
-            Cookie<span className="text-primary">Pump</span>
+            Cookie<span className="text-primary">Lens</span>
           </span>
         </Link>
 

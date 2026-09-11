@@ -1,130 +1,107 @@
-# CookiePump — Product Requirements Document
+# CookieLens — Product Requirements Document
 
 ## 1. Overview
 
-**Project:** CookiePump
-**Pitch:** Launch your memecoin on Cookie Chain in 60 seconds — fair bonding curve, instant trading, zero gatekeeping.
-**Target Users:** Crypto degens, content creators, community builders, and anyone wanting to launch a token on Cookie Chain.
-**Problem:** Cookie Chain has no token launchpad. The infrastructure (CookieBox DBC, DAMM, Metaplex) exists at genesis, but there's no user-friendly way to create and trade tokens. Users must manually interact with programs or use generic Solana tools.
+**Project:** CookieLens
+**Pitch:** The portfolio tracker and market explorer for Cookie Chain — see any wallet's COOK and token balances, every token on the chain, and live network stats in one place. Read the chain freely, and send COOK with real-time confirmation.
+
+**Target Users:** COOK holders, degens, validators, creators, community analysts, and anyone doing research on Cookie Chain.
+
+**Problem:** Cookie Chain has an explorer (CookieScan), DEXs (CookieSwap, Cookiebox), a launchpad (MomoSwap), and a bridge — but **no portfolio-aggregation layer**. There is no product that shows a wallet's complete holdings on Cookie Chain (native COOK + all SPL tokens with prices and USD value), lets you watch arbitrary addresses, or lists every token on the chain ranked by holders. DefiLlama only tracks protocol TVL, not individual wallets.
 
 ## 2. Feature List
 
 | ID | Feature | Priority | Description |
 |----|---------|----------|-------------|
-| F1 | Wallet Connection | P0 | Connect Nightly wallet, display address, COOK balance |
-| F2 | Token Creation ("Bake") | P0 | Form to create token with name, symbol, image, description |
-| F3 | Metadata Upload | P0 | Upload token image and metadata to Arweave/IPFS |
-| F4 | Metaplex Token Deploy | P0 | Create fungible token via Metaplex Token Metadata program |
-| F5 | DBC Pool Initialization | P0 | Initialize bonding curve pool via CookieBox DBC |
-| F6 | Bonding Curve Visualization | P0 | Live chart showing price vs supply on bonding curve |
-| F7 | Buy on Bonding Curve | P0 | Purchase tokens with COOK through DBC program |
-| F8 | Sell on Bonding Curve | P0 | Sell tokens for COOK through DBC program |
-| F9 | Transaction Feedback | P0 | Real-time tx status, confirmation, error handling |
-| F10 | Token Explorer | P1 | Browse all launched tokens, filter by status |
-| F11 | Token Detail Page | P1 | Full token info, chart, trading interface, creator info |
-| F12 | Creator Dashboard | P1 | View your tokens, amounts raised, trading volume |
-| F13 | Migration Indicator | P1 | Show when bonding curve fills and liquidity migrates to DAMM |
-| F14 | Featured Tokens | P1 | Homepage section for trending/newest tokens |
-| F15 | Share Cards | P2 | Generate social media share cards for tokens |
-| F16 | Token Analytics | P2 | Volume, holders, price history charts |
-| F17 | Anti-Rug Info | P2 | Display liquidity lock status and creator token allocation |
+| N1 | Wallet Connection | P0 | Connect Nightly (or any wallet-standard wallet) to view your portfolio |
+| N2 | Portfolio View | P0 | Connected wallet's COOK balance + token holdings, priced in USD, total value |
+| N3 | Wallet Tracker | P0 | Paste any Cookie Chain address → view its holdings and COOK balance, no connection needed |
+| N4 | Token Explorer | P0 | Table of every fungible token on Cookie Chain, ranked by holders, with price/MC where available |
+| N5 | Token Detail | P1 | Metadata page per token (name, symbol, image, supply, decimals, price, market cap) |
+| N6 | Live Network Stats | P1 | Homepage widgets: COOK price (CoinGecko), market cap, current slot |
+| N7 | Transaction History | P1 | Recent transaction signatures per wallet, linked to CookieScan |
+| N8 | Token Search | P2 | Search token explorer by name/symbol via DAS search API |
+| N9 | Price Data | P1 | COOK/USD from CoinGecko; other tokens via DAS price info when indexed |
+| N10 | Activity Feed | P2 | Recent on-chain activity across the ecosystem |
+| N11 | Send COOK | P0 | Sign + broadcast a native COOK transfer with real-time confirmation status |
 
 ## 3. User Flows
 
-### Flow 1: Launch a Token (Primary)
-1. User lands on CookiePump homepage
-2. Clicks "Bake a Cookie" / "Launch Token"
-3. Connects Nightly wallet (if not connected)
-4. Fills form: token name, symbol, image upload, description
-5. Reviews token details on confirmation screen
-6. Signs transaction → token created via Metaplex
-7. Signs transaction → DBC pool initialized with bonding curve
-8. Sees "Cookie Fresh Out of the Oven!" success toast
-9. Redirected to token detail page with live bonding curve chart
+### Flow 1: View your portfolio (primary)
+1. User lands on CookieLens homepage
+2. Clicks "Track my portfolio" (or connects Nightly in the header)
+3. CookieLens reads the connected wallet address via wallet-standard
+4. Portfolio page shows: native COOK balance, USD value, all SPL token holdings with prices
+5. "Refresh" re-reads current balances
 
-### Flow 2: Trade on Bonding Curve
-1. User discovers token on explore page or via link
-2. Views bonding curve chart and current price
-3. Enters amount of COOK to spend (or tokens to sell)
-4. Clicks "Buy" / "Sell"
-5. Signs transaction → DBC buy/sell executed
-6. Sees confirmation toast with tx link
-7. Chart updates in real-time
+### Flow 2: Watch any wallet
+1. User clicks "Watch" in navigation
+2. Pastes any Cookie Chain address (or clicks a suggested example)
+3. CookieLens shows that address's COOK balance, token holdings, and USD total
+4. No signing, no connection, no fees
 
-### Flow 3: Browse Tokens
-1. User clicks "Explore" in navigation
-2. Sees grid of launched tokens with status badges (Baking / Baked / Migrated)
-3. Can filter by: status, newest, most traded
-4. Clicks token → navigates to detail page
+### Flow 3: Browse all tokens
+1. User clicks "Tokens" in navigation
+2. Table loads every fungible token on Cookie Chain from the DAS API, COOK pinned first
+3. Rows show name/symbol/image, price, 24h change, market cap, holders
+4. Click a token → its detail page (N5)
 
 ## 4. Tech Stack
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Next.js | 14+ (App Router) |
-| Language | TypeScript | 5.x (strict mode) |
+| Framework | Next.js (App Router) | 16.x |
+| Language | TypeScript | 5.x (strict) |
 | Styling | Tailwind CSS | 4.x |
-| Charts | Recharts | 2.x |
-| Wallet | @solana/wallet-adapter | Latest |
-| Wallet Plugin | @nightly-app/solana-wallet-adapter | Latest |
-| On-chain | @solana/web3.js | 2.x |
-| Anchor | @coral-xyz/anchor | Latest |
-| Metaplex | @metaplex-foundation/mpl-token-metadata | Latest |
-| Umi | @metaplex-foundation/umi | Latest |
-| CookieBox DBC | Custom IDL (from fibanachos/dynamic-bonding-curve) | 0.1.0 |
+| Wallet | @wallet-standard/react + @wallet-standard/ui | 1.x |
+| On-chain reads | @solana/web3.js (Connection) | 1.99.x |
+| Metadata | CookieScan DAS API (Metaplex DAS standard) | N/A |
+| COOK price | CoinGecko API (`cookie-2`) | N/A |
 | RPC | Cookie Chain RPC | https://rpc.cookiescan.io |
-| WebSocket | Cookie Chain WSS | https://wss.cookiescan.io |
-| Metadata Storage | Irys (via Metaplex Umi uploader) | N/A |
+| Icons | lucide-react | 0.525.x |
+| Toasts | react-hot-toast | 2.x |
 | Deployment | Vercel | N/A |
 
 ## 5. Data Model
 
-### Token (Off-chain index / local state)
+### Portfolio (derived from chain reads)
+```
+Portfolio {
+  address: string
+  cookBalance: number        // native lamports / 1e9
+  cookUsdValue: number       // cookBalance * COOK_USD
+  tokenHoldings: Holding[]
+  totalUsd: number
+  lastActivity: timestamp | null
+}
+
+Holding {
+  mint: string
+  symbol: string
+  name: string
+  image: string | null
+  amount: number             // human units (amount_raw / 10^decimals)
+  decimals: number
+  isCook: boolean
+  priceUsd: number | null
+  valueUsd: number | null
+}
+```
+
+### Token (DAS asset, read-only)
 ```
 Token {
-  mintAddress: string (public key)
+  mint: string
   name: string
   symbol: string
-  description: string
-  imageUri: string
-  metadataUri: string
-  creator: string (wallet address)
-  createdAt: timestamp
-  decimals: number (9)
-  totalSupply: bigint
-  status: "baking" | "baked" | "migrated"
-  poolAddress: string (DBC pool)
-  poolAuthority: string (PDA)
-  baseMint: string (token mint)
-  quoteMint: string (COOK mint)
-}
-```
-
-### Bonding Curve State (On-chain, read from DBC pool account)
-```
-PoolState {
-  virtualBaseReserve: bigint
-  virtualQuoteReserve: bigint
-  realBaseReserve: bigint
-  realQuoteReserve: bigint
-  migrationQuoteThreshold: bigint
-  totalQuoteAmount: bigint
-  // Derived:
-  currentPrice: bigint (quoteReserve / baseReserve)
-  percentComplete: number (totalQuote / threshold)
-}
-```
-
-### Trade (On-chain, derived from transactions)
-```
-Trade {
-  signature: string
-  type: "buy" | "sell"
-  tokenMint: string
-  trader: string
-  baseAmount: bigint
-  quoteAmount: bigint
-  timestamp: number
+  image: string | null
+  decimals: number
+  supply: number
+  holderCount: number
+  priceUsd: number | null     // DAS price_info when indexed
+  marketCapUsd: number | null
+  volume24h: number | null
+  change24h: number | null
 }
 ```
 
@@ -134,18 +111,19 @@ Trade {
 |------|--------|
 | 1 | Build and test locally with `npm run dev` |
 | 2 | Deploy to Vercel (auto-deploy from GitHub main branch) |
-| 3 | Set environment variables in Vercel dashboard |
-| 4 | Verify wallet connection works on Cookie Chain |
-| 5 | Test full flow: create token → initialize pool → buy → sell |
+| 3 | Set environment variables (`NEXT_PUBLIC_*`) in Vercel dashboard |
+| 4 | Verify wallet connection on Cookie Chain |
+| 5 | Verify portfolio shows real balances; verify token explorer populates |
 | 6 | Submit Vercel URL + GitHub repo to hackathon |
 
 ## 7. Success Metrics
 
 | Metric | Target |
 |--------|--------|
-| Token creation success rate | > 95% |
-| Average time to launch token | < 2 minutes |
-| Transaction confirmation time | < 3 seconds (sub-second finality) |
-| Zero unhandled errors in UI | Yes |
-| All P0 features working | Yes |
+| Portfolio load time | < 5 seconds |
+| Correct COOK balance shown | Yes |
+| Token explorer populated | Shows COOK + all discovered token |
+| Watches any valid address | Yes |
+| Zero unhandled errors | Yes |
+| Send COOK executes + confirms with status feedback | Yes |
 | README completeness | 100% |

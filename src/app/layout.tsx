@@ -5,8 +5,8 @@ import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CookiePump",
-  description: "Launch memecoins on Cookie Chain in 60 seconds — fair bonding curve, instant trading, zero gatekeeping.",
+  title: "CookieLens",
+  description: "Portfolio tracker and market analytics for Cookie Chain — watch your COOK and every token on the chain in one place.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

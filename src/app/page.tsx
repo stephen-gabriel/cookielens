@@ -1,79 +1,124 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Flame, ShieldCheck, Zap } from "lucide-react";
-
-const stats = [
-  { label: "Time to launch", value: "< 60s" },
-  { label: "Fee per transaction", value: "~$0.000005" },
-  { label: "Program deploy", value: "~$0.05" },
-];
+import { Activity, ArrowRight, BarChart3, Eye, LayoutDashboard, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RPC_URL } from "@/lib/constants";
+import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
 
 const features = [
   {
-    icon: Zap,
-    title: "Fair bonding curve",
-    desc: "Every token launches on a trustless CookieBox DBC curve. Prices rise as people buy — anyone in early is priced equally.",
+    icon: LayoutDashboard,
+    title: "Your portfolio, on-chain",
+    desc: "Connect Nightly and see your COOK balance plus every token you hold, valued live in USD.",
+    href: "/portfolio",
   },
   {
-    icon: ShieldCheck,
-    title: "Auto liquidity",
-    desc: "When the curve fills, liquidity migrates to CookieBox DAMM automatically. No rug, no manual LP.",
+    icon: Eye,
+    title: "Watch any wallet",
+    desc: "Paste any Cookie Chain address — research whales, validators, and the reserve vault without connecting.",
+    href: "/watch",
   },
   {
-    icon: Flame,
-    title: "Zero gatekeeping",
-    desc: "No approvals, no whitelists. Connect your Nightly wallet and bake a token in under a minute.",
+    icon: BarChart3,
+    title: "Every token in one table",
+    desc: "Discover every fungible token on Cookie Chain, ranked by holders. The ecosystem at a glance.",
+    href: "/tokens",
+  },
+  {
+    icon: Activity,
+    title: "Activity & history",
+    desc: "Dive into per-wallet transaction history straight from the chain.",
+    href: "/watch",
   },
 ];
 
+async function getSlotHeight() {
+  try {
+    const res = await fetch(RPC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getSlotHeight", params: [] }),
+    });
+    const json = (await res.json()) as { result?: number };
+    return json.result ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function HomePage() {
+  const [cook, setCook] = useState<CookMarketData | null>(null);
+  const [slot, setSlot] = useState<number | null>(null);
+
+  useEffect(() => {
+    getCookMarketData().then(setCook).catch(() => setCook(null));
+    getSlotHeight().then(setSlot).catch(() => setSlot(null));
+  }, []);
+
   return (
     <main className="mx-auto max-w-6xl px-4">
-      <section className="flex flex-col items-center py-24 text-center">
+      <section className="flex flex-col items-center py-20 text-center">
         <span className="rounded-full border border-border bg-surface px-4 py-1 text-xs text-text-secondary">
-          Cookie Chain Hackathon · SVM memecoin launchpad
+          Cookie Chain ecosystem analytics
         </span>
         <h1 className="mt-6 max-w-3xl text-5xl font-bold leading-tight tracking-tight">
-          Bake your memecoin on{" "}
-          <span className="text-primary">Cookie Chain</span> in 60 seconds
+          See every cookie on <span className="text-primary">Cookie Chain</span>
         </h1>
         <p className="mt-4 max-w-xl text-lg text-text-secondary">
-          Fair bonding curves, instant trading, zero gatekeeping. The mint goes
-          in the oven, the chart goes brrr.
+          CookieLens is the portfolio tracker and market explorer for the COOK ecosystem —
+          balances, prices, holders, and history in one place. No signing, no fees, no COOK required.
         </p>
-        <div className="mt-8 flex items-center gap-4">
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Link
-            href="/bake"
+            href="/portfolio"
             className="flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-base font-semibold text-background transition hover:bg-primary/90"
           >
-            Bake a Token <ArrowRight className="h-4 w-4" />
+            Track my portfolio <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/explore"
+            href="/tokens"
             className="rounded-md border border-border px-6 py-3 text-base text-text-secondary transition hover:border-primary/50 hover:text-primary"
           >
-            Explore
+            Browse tokens
           </Link>
         </div>
 
-        <div className="mt-16 grid w-full max-w-3xl grid-cols-3 gap-4">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-lg border border-border bg-surface p-4">
-              <div className="font-mono text-2xl font-bold text-primary">{s.value}</div>
-              <div className="mt-1 text-sm text-text-secondary">{s.label}</div>
+        <div className="mt-16 grid w-full max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Price</div>
+            <div className="mt-1 font-mono text-lg font-bold text-primary">
+              {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
-          ))}
+          </div>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Market Cap</div>
+            <div className="mt-1 font-mono text-lg font-bold">
+              {cook?.marketCapUsd ? `$${cook.marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="text-xs uppercase tracking-wide text-text-secondary">Network</div>
+            <div className="mt-1 font-mono text-lg font-bold text-secondary">Cookie Chain</div>
+          </div>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="text-xs uppercase tracking-wide text-text-secondary">Chain Height</div>
+            <div className="mt-1 font-mono text-lg font-bold">{slot ? slot.toLocaleString() : "—"}</div>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-6 py-12 md:grid-cols-3">
+      <section className="grid gap-6 py-12 md:grid-cols-2">
         {features.map((f) => (
-          <div key={f.title} className="rounded-lg border border-border bg-surface p-6">
+          <Link key={f.title} href={f.href} className="group rounded-lg border border-border bg-surface p-6 transition hover:border-primary/40">
             <f.icon className="h-6 w-6 text-secondary" />
             <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-text-secondary">{f.desc}</p>
-          </div>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm text-primary opacity-0 transition group-hover:opacity-100">
+              Open <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+          </Link>
         ))}
       </section>
     </main>

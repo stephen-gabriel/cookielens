@@ -95,7 +95,7 @@ export function WalletButton() {
               >
                 Nightly
               </a>{" "}
-              to launch tokens on Cookie Chain.
+              to track your on-chain portfolio on Cookie Chain.
             </p>
           </div>
         </>
