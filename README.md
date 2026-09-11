@@ -2,6 +2,14 @@
 
 Analytics + portfolio tracker for **Cookie Chain**. See native COOK and every token holding for any wallet — priced in USD, ranked across the chain — plus live network stats and a one-click **Send COOK** transfer.
 
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![Solana web3.js](https://img.shields.io/badge/Solana-web3.js-9945FF?logo=solana)](https://solana.com/)
+[![Wallet-Standard](https://img.shields.io/badge/Wallet-Standard-512888?logo=wallet)](https://wallet-standard.github.io/)
+[![Cookie Chain](https://img.shields.io/badge/Cookie-9600FF?logo=solana)](https://www.cookiechain.wtf/)
+
 ## Why
 
 Cookie Chain has explorers, DEXs, a launchpad, and a bridge — but no portfolio-aggregation layer. CookieLens is that layer: connect a wallet (Nightly or any wallet-standard wallet), paste any address to watch it, browse every token on the chain, and send COOK with live status feedback.

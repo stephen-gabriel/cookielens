@@ -53,24 +53,37 @@ export async function walletSignAndSubmit(
   prepared: PreparedCookTransfer,
   connection: Connection,
 ): Promise<string> {
+  let lastError: unknown = null;
+
   if (wallet.features.includes(SIGN_TX)) {
-    const feature = getWalletFeature(wallet, SIGN_TX) as unknown as SignTransactionFeature["solana:signTransaction"];
-    const { signedTransactions } = await feature.signTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
-    const signed = signedTransactions[0];
-    if (!signed) throw new Error("Wallet returned no signed transaction");
-    const bytes = signed instanceof Transaction ? signed.serialize() : signed;
-    return await connection.sendRawTransaction(bytes);
+    try {
+      const feature = getWalletFeature(wallet, SIGN_TX) as unknown as SignTransactionFeature["solana:signTransaction"];
+      const { signedTransactions } = await feature.signTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
+      const signed = signedTransactions?.[0];
+      if (signed) {
+        const bytes = signed instanceof Transaction ? signed.serialize() : new Uint8Array(signed);
+        return await connection.sendRawTransaction(bytes);
+      }
+      lastError = new Error("Wallet returned no signed transaction");
+    } catch (err) {
+      lastError = err;
+    }
   }
 
   if (wallet.features.includes(SIGN_AND_SEND_TX)) {
-    const feature = getWalletFeature(
-      wallet,
-      SIGN_AND_SEND_TX,
-    ) as unknown as SignAndSendTransactionFeature["solana:signAndSendTransaction"];
-    const { signature } = await feature.signAndSendTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
-    return new PublicKey(signature).toBase58();
+    try {
+      const feature = getWalletFeature(
+        wallet,
+        SIGN_AND_SEND_TX,
+      ) as unknown as SignAndSendTransactionFeature["solana:signAndSendTransaction"];
+      const { signature } = await feature.signAndSendTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
+      return new PublicKey(signature).toBase58();
+    } catch (err) {
+      lastError = err;
+    }
   }
 
+  if (lastError) throw lastError instanceof Error ? lastError : new Error("Transaction signing failed");
   throw new Error("Your wallet does not support signing transactions");
 }
 
