@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Cookie } from "lucide-react";
 import { useWallet } from "@/lib/providers";
 import { ImageUpload } from "@/components/bake/ImageUpload";
+import { useCreateToken } from "@/hooks/useCreateToken";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 
 const MAX_NAME = 32;
 const MAX_SYMBOL = 6;
@@ -12,10 +14,13 @@ const MAX_DESCRIPTION = 500;
 
 export function BakeForm() {
   const { account, connectedWallet } = useWallet();
+  const walletAddress = account?.address ?? "";
+  const { createToken, loading: tokenLoading } = useCreateToken(walletAddress, connectedWallet, account);
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [mintedMint, setMintedMint] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const formValid = name.trim().length > 0 && symbol.trim().length > 0 && image !== null;
@@ -25,12 +30,23 @@ export function BakeForm() {
       toast.error("Connect your wallet to bake a token");
       return;
     }
+    if (!image) {
+      toast.error("Please upload an image for your token");
+      return;
+    }
     setSubmitting(true);
     try {
-      // Phase 3 (F4-F5): deploy token via Metaplex, then initialize DBC pool.
-      // Placeholder until implemented.
-      await new Promise((r) => setTimeout(r, 800));
-      toast.success("Cookie is ready to bake! On-chain deploy coming next.");
+      const { mint } = await createToken({
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description.trim(),
+        imageFile: image,
+      });
+      setMintedMint(mint);
+      toast.success(`Token baked! Mint: ${mint.slice(0, 6)}...${mint.slice(-4)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Deploy failed";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -102,13 +118,32 @@ export function BakeForm() {
 
         <button
           onClick={handleSubmit}
-          disabled={!formValid || submitting}
+          disabled={!formValid || submitting || tokenLoading}
           className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-base font-semibold text-background transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Cookie className="h-5 w-5" />
-          {submitting ? "Baking..." : "Bake the Cookie"}
+          {submitting || tokenLoading ? "Baking..." : "Bake the Cookie"}
         </button>
       </div>
+
+      {mintedMint && (
+        <div className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm">
+          <p className="font-semibold text-emerald-400">Cookie baked successfully!</p>
+          <p className="mt-1 break-all font-mono text-xs text-text-secondary">{mintedMint}</p>
+          <p className="mt-1 text-text-secondary">
+            View it on{" "}
+            <Link
+              href={`https://cookiescan.io/address/${mintedMint}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline"
+            >
+              CookieScan
+            </Link>
+            . Bonding curve pool coming in a later phase.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
