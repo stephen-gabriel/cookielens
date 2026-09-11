@@ -1,0 +1,90 @@
+"use client";
+
+import { useWallet } from "@/lib/providers";
+import { truncateAddress } from "@/lib/format";
+import { Loader2, LogOut } from "lucide-react";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+
+export function WalletButton() {
+  const { wallets, connectedWallet, account, connecting, connect, disconnect } = useWallet();
+  const [open, setOpen] = useState(false);
+
+  if (connectedWallet && account) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-sm text-text-secondary">{truncateAddress(account.address)}</span>
+        <button
+          onClick={async () => {
+            await disconnect();
+            toast.success("Disconnected");
+          }}
+          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-text-secondary transition hover:border-error/50 hover:text-error"
+        >
+          <LogOut className="h-4 w-4" />
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        disabled={connecting}
+        className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition hover:bg-primary/90 disabled:opacity-60"
+      >
+        {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect Wallet"}
+      </button>
+
+      {open && wallets.length > 0 && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-12 z-20 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
+            {wallets.map((wallet) => (
+              <button
+                key={wallet.name}
+                onClick={async () => {
+                  setOpen(false);
+                  try {
+                    await connect(wallet);
+                    toast.success(`Connected ${wallet.name}`);
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Connection failed");
+                  }
+                }}
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-text-primary transition hover:bg-surface-hover"
+              >
+                {wallet.icon && (
+                  <img src={wallet.icon} alt={wallet.name} className="h-6 w-6 rounded" />
+                )}
+                <span className="font-medium">{wallet.name}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {open && wallets.length === 0 && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-12 z-20 w-72 rounded-lg border border-border bg-surface p-4 shadow-xl">
+            <p className="text-sm text-text-primary">
+              No wallet found. Install{" "}
+              <a
+                href="https://nightly.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Nightly
+              </a>{" "}
+              to launch tokens on Cookie Chain.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
