@@ -60,16 +60,23 @@ export async function getAssetsByOwner(
   }
 }
 
-export async function searchFungibleAssets(searchString?: string, limit = 100): Promise<DasAsset[]> {
+export async function searchFungibleAssets(searchString?: string, maxLimit = 500): Promise<DasAsset[]> {
+  const pageSize = 100;
+  const out: DasAsset[] = [];
   try {
-    const result = await dasCall<{ total: number; items: DasAsset[] }>("searchAssets", {
-      page: 1,
-      limit,
-      tokenType: "fungible",
-      ...(searchString ? { searchString } : {}),
-    });
-    return result.items ?? [];
+    for (let page = 1; out.length < maxLimit; page++) {
+      const result = await dasCall<{ total: number; items: DasAsset[] }>("searchAssets", {
+        page,
+        limit: pageSize,
+        tokenType: "fungible",
+        ...(searchString ? { searchString } : {}),
+      });
+      const items = result.items ?? [];
+      out.push(...items);
+      if (items.length < pageSize || out.length >= (result.total ?? out.length)) break;
+    }
   } catch {
-    return [];
+    // Partial results are acceptable; return what we have.
   }
+  return out.slice(0, maxLimit);
 }

@@ -47,14 +47,16 @@ export default function TokensPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [assets, market] = await Promise.all([searchFungibleAssets(undefined, 100), getCookMarketData()]);
+        const [assets, market] = await Promise.all([searchFungibleAssets(undefined, 500), getCookMarketData()]);
         const seen = new Set<string>();
         const list: Row[] = [];
         for (const a of assets) {
           if (seen.has(a.id)) continue;
           seen.add(a.id);
           if (a.content.metadata.symbol === "COOK" || a.id.startsWith("36ZrtQ")) continue;
-          list.push(toRow(a));
+          const row = toRow(a);
+          if (row.holderCount === 0) continue;
+          list.push(row);
         }
         list.sort((x, y) => y.holderCount - x.holderCount);
         setRows(list);
