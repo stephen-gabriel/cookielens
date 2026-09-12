@@ -370,10 +370,9 @@ async function runCycle() {
   }
 
   let end = Math.min(head, startSlot + BATCH);
-  if (end <= startSlot) return 0;
+  if (end <= startSlot) return { done: 0, actions: 0, events: 0 };
 
   const slots = (await rpc("getBlocks", [startSlot + 1, end])) ?? [];
-  console.log(`[indexer] cycle slots ${startSlot + 1}..${end} (${slots.length} present)`);
 
   let queue = [...slots];
   let next = 0;
@@ -391,11 +390,11 @@ async function runCycle() {
   });
   await Promise.all(workers);
 
-  await writeEvents(allCycleActs);
+  const eventsWritten = await writeEvents(allCycleActs);
   await setState("start_slot", String(end));
   await setState("last_run", new Date().toISOString());
   await setState("last_head", String(head));
-  return slots.length;
+  return { done: slots.length, actions: allCycleActs.length, events: eventsWritten };
 }
 
 async function writeEvents(cycleActs) {
@@ -461,6 +460,7 @@ async function writeEvents(cycleActs) {
   }
 
   events.sort((a, b) => b.significance - a.significance);
+  let written = 0;
   for (const ev of events.slice(0, 12)) {
     await sql`
       insert into social_events (archetype, wallet, token_mint, source_activity_ids, significance, payload)
@@ -470,8 +470,9 @@ async function writeEvents(cycleActs) {
     if (ev.sourceActivityId) {
       await sql`update activities set event_created = true where id = ${ev.sourceActivityId}`;
     }
+    written++;
   }
-  console.log(`[indexer] cycle: ${cycleActs.length} actions -> ${Math.min(events.length, 12)} social events`);
+  return written;
 }
 
 function pumpSignificance(holders, pct) {
@@ -490,11 +491,22 @@ async function main() {
   console.log(
     `[indexer] rpc=${RPC_URL} concurrency=${CONCURRENCY} batch=${BATCH} large_usd=${LARGE_USD} backfill=${BACKFILL_HOURS ?? "live"}`,
   );
+  let cycle = 0;
   for (;;) {
-    const done = await runCycle();
+    cycle++;
+    const { done, actions, events } = await runCycle();
     if (ONCE) {
-      console.log(`[indexer] cycle complete (${done} slots). exiting.`);
+      console.log(`[indexer] cycle complete (${done} slots, ${actions} actions, ${events} events). exiting.`);
       return;
+    }
+    // Quiet by default: log only when something surfaced, plus a heartbeat
+    // every ~60 cycles so the operator can see it's alive.
+    if (actions > 0 || events > 0) {
+      console.log(`[indexer] ${actions} actions -> ${events} social events (slots ${done})`);
+    } else if (cycle % 60 === 0) {
+      const head = await getState("last_head", "?");
+      const at = await getState("start_slot", "?");
+      console.log(`[indexer] alive — tracking to slot ${at} (head ${head})`);
     }
     await new Promise((r) => setTimeout(r, CYCLE_SLEEP_MS));
   }
