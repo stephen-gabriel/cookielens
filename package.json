@@ -7,12 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@solana/web3.js": "^1.99.0",
     "@wallet-standard/app": "^1.1.1",
     "@wallet-standard/react": "^1.0.3",
+    "bs58": "^6.0.0",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.525.0",
     "next": "16.3.4",
     "react": "19.2.8",
@@ -25,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "postcss": "^8.4.0",
