@@ -4,17 +4,25 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-function getConnectionString(): string {
+let instance: ReturnType<typeof buildClient> | null = null;
+
+function buildClient() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is not set. Add your Neon pooled connection string to .env.local");
   }
-  return url;
+  const sql = neon(url);
+  return drizzle(sql, { schema });
 }
 
-const sql = neon(getConnectionString());
+/**
+ * Lazily-created DB client. Route modules import this file at build time,
+ * so we must not throw until a query is actually executed.
+ */
+export function getDb() {
+  if (!instance) instance = buildClient();
+  return instance;
+}
 
-export const db = drizzle(sql, { schema });
 export { schema };
-
-export type Db = typeof db;
+export type Db = ReturnType<typeof buildClient>;
