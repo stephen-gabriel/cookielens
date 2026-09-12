@@ -89,9 +89,13 @@ async function setState(key, value) {
 
 async function upsertWallet(address, lastActivityAt, tokenMints) {
   if (!address) return;
+  const ts =
+    typeof lastActivityAt === "number"
+      ? new Date(lastActivityAt * 1000).toISOString()
+      : lastActivityAt ?? new Date().toISOString();
   await sql`
     insert into wallets (address, first_observed_at, last_activity_at, tx_count, token_interactions)
-    values (${address}, now(), ${lastActivityAt}, 1, ${tokenMints ? tokenMints.size : 0})
+    values (${address}, now(), ${ts}, 1, ${tokenMints ? tokenMints.size : 0})
     on conflict (address) do update set
       last_activity_at = greatest(wallets.last_activity_at, excluded.last_activity_at),
       tx_count = wallets.tx_count + 1,
@@ -253,7 +257,7 @@ function parseTransaction(entry, blockTime, slot) {
 
 // ---- Significance engine -----------------------------------------------------
 function short(wallet) {
-  return `${wallet.slice(0, 4)}…`;
+  return `${wallet.slice(0, 4)}...`;
 }
 function fmtAmount(amount) {
   const n = Number(amount);
