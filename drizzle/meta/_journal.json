@@ -8,6 +8,13 @@
       "when": 1789242550139,
       "tag": "0000_perpetual_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789253864657,
+      "tag": "0001_cloudy_white_queen",
+      "breakpoints": true
     }
   ]
 }

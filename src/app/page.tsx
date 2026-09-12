@@ -14,6 +14,14 @@ import type { FeedEvent } from "@/lib/events";
 
 type Tab = "following" | "discover";
 
+type IndexerStatus = {
+  ok: boolean;
+  lastRun: string | null;
+  head: number | null;
+  processed: number | null;
+  lag: number | null;
+};
+
 export default function HomePage() {
   const { me, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("following");
@@ -25,6 +33,14 @@ export default function HomePage() {
     error: null,
   });
   const [emerging, setEmerging] = useState<EmergingToken[] | null>(null);
+  const [indexer, setIndexer] = useState<IndexerStatus | null>(null);
+
+  useEffect(() => {
+    fetch("/api/indexer/status", { cache: "no-store" })
+      .then((res) => res.json())
+      .then(setIndexer)
+      .catch(() => setIndexer(null));
+  }, []);
 
   useEffect(() => {
     getCookMarketData().then(setCook).catch(() => setCook(null));
@@ -100,6 +116,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {indexer && indexer.ok && indexer.processed !== null && (
+        <p className="text-xs text-text-secondary">
+          Indexer · tracking to slot {indexer.processed.toLocaleString()}
+          {indexer.lag !== null && indexer.lag > 0 ? ` (lag ${indexer.lag.toLocaleString()} slots)` : ""}
+        </p>
+      )}
 
       <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
         <TabButton active={tab === "following"} label="Following" icon={UserPlus} onClick={() => setTab("following")} />

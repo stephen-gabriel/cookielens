@@ -11,7 +11,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:check": "node scripts/check-db.cjs"
+    "db:check": "node scripts/check-db.cjs",
+    "indexer": "node scripts/indexer.cjs",
+    "indexer:once": "node scripts/indexer.cjs --once",
+    "indexer:backfill": "node scripts/indexer.cjs --backfill"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -217,5 +217,14 @@ export const claimChallenges = pgTable(
   (t) => [index("claim_challenges_wallet_idx").on(t.wallet)],
 );
 
+/**
+ * Indexer progress bookkeeping (standalone worker, not the API).
+ */
+export const indexerState = pgTable("indexer_state", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type ActivityType = (typeof activityTypeEnum.enumValues)[number];
 export type Archetype = (typeof archetypeEnum.enumValues)[number];
