@@ -15,7 +15,7 @@ export default function PortfolioPage() {
 
   if (!connectedWallet || !account) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center">
+      <div className="mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center">
         <LayoutDashboard className="h-10 w-10 text-text-secondary sm:h-12 sm:w-12" />
         <h1 className="mt-4 text-xl font-bold sm:text-2xl">Connect your wallet</h1>
         <p className="mt-2 max-w-md text-sm text-text-secondary sm:text-base">
@@ -24,12 +24,12 @@ export default function PortfolioPage() {
         <Link href="/" className="mt-6 text-primary underline">
           Back to overview
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold sm:text-2xl">Portfolio</h1>
@@ -86,6 +86,6 @@ export default function PortfolioPage() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

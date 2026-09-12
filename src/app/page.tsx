@@ -1,131 +1,230 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ArrowRight, BarChart3, Eye, LayoutDashboard } from "lucide-react";
+import { Activity, Compass, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { RPC_URL } from "@/lib/constants";
+import { WalletClaim } from "@/components/auth/WalletClaim";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { EventCard } from "@/components/feed/EventCard";
+import { TokenImage } from "@/components/portfolio/HoldingsTable";
 import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
+import { formatCompact, formatUsd } from "@/lib/format";
+import type { EmergingToken } from "@/app/api/explore/emerging/route";
+import type { FeedEvent } from "@/lib/events";
 
-const features = [
-  {
-    icon: LayoutDashboard,
-    title: "Your portfolio, on-chain",
-    desc: "Connect Nightly and see your COOK balance plus every token you hold, valued live in USD.",
-    href: "/portfolio",
-  },
-  {
-    icon: Eye,
-    title: "Watch any wallet",
-    desc: "Paste any Cookie Chain address — research whales, validators, and the reserve vault without connecting.",
-    href: "/watch",
-  },
-  {
-    icon: BarChart3,
-    title: "Every token in one table",
-    desc: "Discover every fungible token on Cookie Chain, ranked by holders. The ecosystem at a glance.",
-    href: "/tokens",
-  },
-  {
-    icon: Activity,
-    title: "Activity & history",
-    desc: "Dive into per-wallet transaction history straight from the chain.",
-    href: "/watch",
-  },
-];
-
-async function getSlotHeight() {
-  async function rpcCall(method: string) {
-    const res = await fetch(RPC_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [] }),
-    });
-    const json = (await res.json()) as { result?: number };
-    return typeof json.result === "number" ? json.result : null;
-  }
-  try {
-    const height = await rpcCall("getSlotHeight");
-    if (height !== null) return height;
-    return await rpcCall("getSlot");
-  } catch {
-    return null;
-  }
-}
+type Tab = "following" | "discover";
 
 export default function HomePage() {
+  const { me, loading: authLoading } = useAuth();
+  const [tab, setTab] = useState<Tab>("following");
   const [cook, setCook] = useState<CookMarketData | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
+  const [feed, setFeed] = useState<{ tab: Tab; events: FeedEvent[] | null; error: string | null }>({
+    tab: "following",
+    events: null,
+    error: null,
+  });
+  const [emerging, setEmerging] = useState<EmergingToken[] | null>(null);
 
   useEffect(() => {
     getCookMarketData().then(setCook).catch(() => setCook(null));
-    getSlotHeight().then(setSlot).catch(() => setSlot(null));
+    fetch("https://rpc.cookiescan.io", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getSlot", params: [] }),
+    })
+      .then((res) => res.json())
+      .then((json) => setSlot(typeof json.result === "number" ? json.result : null))
+      .catch(() => setSlot(null));
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/feed?tab=${tab}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { ok?: boolean; events?: FeedEvent[]; error?: string }) => {
+        if (cancelled) return;
+        if (!data.ok) {
+          setFeed({ tab, events: data.events ?? [], error: data.error ?? "Feed unavailable." });
+        } else {
+          setFeed({ tab, events: data.events ?? [], error: null });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFeed({ tab, events: [], error: "Feed unavailable right now." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "discover") return;
+    let cancelled = false;
+    fetch("/api/explore/emerging?limit=10")
+      .then((res) => res.json())
+      .then((data: { tokens?: EmergingToken[] }) => {
+        if (!cancelled) setEmerging(data.tokens ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setEmerging([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
+  const loadingFeed = feed.tab !== tab || (feed.events === null && !feed.error);
+
   return (
-    <main className="mx-auto max-w-6xl px-4">
-      <section className="flex flex-col items-center py-20 text-center">
-        <span className="rounded-full border border-border bg-surface px-4 py-1 text-xs text-text-secondary">
-          Cookie Chain ecosystem analytics
-        </span>
-        <h1 className="mt-6 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-          See every cookie on <span className="text-primary">Cookie Chain</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-base text-text-secondary sm:text-lg">
-          CookieLens is the portfolio tracker and market explorer for the COOK ecosystem —
-          balances, prices, holders, and history in one place. No signing, no fees, no COOK required.
-        </p>
-
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          <Link
-            href="/portfolio"
-            className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-primary/90 sm:px-6 sm:py-3 sm:text-base"
-          >
-            Track my portfolio <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/tokens"
-            className="rounded-md border border-border px-5 py-2.5 text-sm text-text-secondary transition hover:border-primary/50 hover:text-primary sm:px-6 sm:py-3 sm:text-base"
-          >
-            Browse tokens
-          </Link>
+    <div className="space-y-4">
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-3">
+          <div className="text-[11px] uppercase tracking-wide text-text-secondary">COOK Price</div>
+          <div className="mt-1 font-mono text-sm font-bold text-primary">
+            {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : "—"}
+          </div>
         </div>
-
-        <div className="mt-12 grid w-full max-w-3xl grid-cols-2 gap-3 sm:mt-16 sm:grid-cols-4 sm:gap-4">
-          <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">
-            <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Price</div>
-            <div className="mt-1 font-mono text-sm font-bold text-primary sm:text-lg">
-              {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : "—"}
-            </div>
-          </div>
-          <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">
-            <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Market Cap</div>
-            <div className="mt-1 truncate font-mono text-sm font-bold sm:text-lg">
-              {cook?.marketCapUsd ? `$${cook.marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
-            </div>
-          </div>
-          <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">
-            <div className="text-xs uppercase tracking-wide text-text-secondary">Network</div>
-            <div className="mt-1 truncate font-mono text-sm font-bold text-secondary sm:text-lg">Cookie Chain</div>
-          </div>
-          <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">
-            <div className="text-xs uppercase tracking-wide text-text-secondary">Chain Height</div>
-            <div className="mt-1 truncate font-mono text-sm font-bold sm:text-lg">{slot ? slot.toLocaleString() : "—"}</div>
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-3">
+          <div className="text-[11px] uppercase tracking-wide text-text-secondary">Market Cap</div>
+          <div className="mt-1 truncate font-mono text-sm font-bold">{cook?.marketCapUsd ? formatUsd(cook.marketCapUsd) : "—"}</div>
+        </div>
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-3">
+          <div className="text-[11px] uppercase tracking-wide text-text-secondary">Network</div>
+          <div className="mt-1 truncate font-mono text-sm font-bold text-secondary">Cookie Chain</div>
+        </div>
+        <div className="min-w-0 rounded-lg border border-border bg-surface p-3">
+          <div className="text-[11px] uppercase tracking-wide text-text-secondary">Chain Height</div>
+          <div className="mt-1 truncate font-mono text-sm font-bold">
+            {slot !== null ? slot.toLocaleString() : "—"}
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 py-12 md:grid-cols-2">
-        {features.map((f) => (
-          <Link key={f.title} href={f.href} className="group rounded-lg border border-border bg-surface p-6 transition hover:border-primary/40">
-            <f.icon className="h-5 w-5 text-secondary sm:h-6 sm:w-6" />
-            <h3 className="mt-4 text-base font-semibold sm:text-lg">{f.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-text-secondary">{f.desc}</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm text-primary opacity-0 transition group-hover:opacity-100">
-              Open <ArrowRight className="h-3.5 w-3.5" />
-            </span>
+      <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
+        <TabButton active={tab === "following"} label="Following" icon={UserPlus} onClick={() => setTab("following")} />
+        <TabButton active={tab === "discover"} label="Discover" icon={Compass} onClick={() => setTab("discover")} />
+      </div>
+
+      {tab === "following" && !loadingFeed && !authLoading && !me && (
+        <div className="space-y-3">
+          <div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-secondary">
+            <p className="font-semibold text-text-primary">Sign in to build a Following feed.</p>
+            <p className="mt-1">Claim your wallet, then follow the wallets whose moves matter to you. Their significant on-chain activity shows up here.</p>
+          </div>
+          <WalletClaim surface="banner" />
+        </div>
+      )}
+
+      {!loadingFeed && feed.error && (
+        <div className="rounded-lg border border-border bg-surface p-6 text-center">
+          <Activity className="mx-auto h-6 w-6 text-text-secondary" />
+          <p className="mt-2 text-sm font-semibold">{feed.error}</p>
+          <p className="mt-1 text-sm text-text-secondary">Activity appears once the indexer is live.</p>
+        </div>
+      )}
+
+      {loadingFeed && !authLoading && (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-lg bg-surface-hover" />
+          ))}
+        </div>
+      )}
+
+      {tab === "following" && !loadingFeed && feed.events !== null && me && feed.events.length === 0 && !feed.error && (
+        <div className="rounded-lg border border-border bg-surface p-6 text-center">
+          <UserPlus className="mx-auto h-6 w-6 text-text-secondary" />
+          <p className="mt-2 text-sm font-semibold text-text-primary">You aren&apos;t following any wallets yet.</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            Browse the wallet directory, then follow the ones whose activity matters.
+          </p>
+          <Link href="/wallets" className="mt-3 inline-block text-sm text-primary underline">
+            Explore wallets →
           </Link>
-        ))}
-      </section>
-    </main>
+        </div>
+      )}
+
+      {!loadingFeed && feed.events !== null && feed.events.length > 0 && (
+        <div className="space-y-3">
+          {feed.events.map((e) => (
+            <EventCard key={e.id} event={e} />
+          ))}
+        </div>
+      )}
+
+      {tab === "discover" && !loadingFeed && feed.events !== null && feed.events.length === 0 && !feed.error && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-text-primary">Emerging on Cookie Chain</h2>
+            <span className="text-xs text-text-secondary">by holder count</span>
+          </div>
+
+          {emerging === null && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-surface-hover" />
+              ))}
+            </div>
+          )}
+
+          {emerging && emerging.length === 0 && (
+            <p className="rounded-lg border border-border bg-surface p-4 text-sm text-text-secondary">
+              Token data is warming up. Check back shortly.
+            </p>
+          )}
+
+          {emerging && emerging.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {emerging.map((t) => (
+                <Link
+                  key={t.mint}
+                  href={`/token/${t.mint}`}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition hover:border-primary/40"
+                >
+                  <TokenImage image={t.image} symbol={t.symbol} className="h-10 w-10" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{t.symbol}</span>
+                    <span className="block truncate text-xs text-text-secondary">{t.name}</span>
+                    <span className="mt-0.5 block text-xs text-text-secondary">
+                      {formatCompact(t.holders)} holders
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-xs text-text-secondary">{formatUsd(t.priceUsd)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-text-secondary">
+            The significance engine surfaces classified on-chain activity here once the indexer is live.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  icon: typeof UserPlus;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition ${
+        active ? "bg-surface-hover text-primary" : "text-text-secondary hover:text-text-primary"
+      }`}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
   );
 }

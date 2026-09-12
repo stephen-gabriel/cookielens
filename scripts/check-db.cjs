@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Quick connectivity check: lists CookieLens tables in the configured Postgres.
 require("process").loadEnvFile(".env.local");
 const { neon } = require("@neondatabase/serverless");

@@ -33,21 +33,21 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
 
   if (!done) {
     return (
-      <main className="mx-auto flex max-w-2xl justify-center px-4 py-24">
+      <div className="mx-auto flex max-w-2xl justify-center px-4 py-24">
         <Loader2 className="h-6 w-6 animate-spin text-text-secondary" />
-      </main>
+      </div>
     );
   }
 
   if (!asset) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-24 text-center">
+      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
         <h1 className="text-xl font-bold">Token not found</h1>
         <p className="mt-2 text-text-secondary">We couldn&apos;t read metadata for {mint}.</p>
         <Link href="/tokens" className="mt-4 inline-block text-primary underline">
           Back to all tokens
         </Link>
-      </main>
+      </div>
     );
   }
 
@@ -57,7 +57,7 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
   const decimals = asset.token_info?.decimals ?? 0;
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="flex flex-wrap items-center gap-4">
         <TokenImage image={asset.content.links?.image ?? null} symbol={asset.content.metadata.symbol ?? "?"} className="h-16 w-16" />
         <div className="min-w-0 flex-1">
@@ -95,6 +95,6 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
           {asset.content.metadata.description}
         </p>
       )}
-    </main>
+    </div>
   );
 }

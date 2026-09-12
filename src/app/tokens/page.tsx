@@ -70,7 +70,7 @@ export default function TokensPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center gap-2">
         <BarChart3 className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
         <h1 className="text-xl font-bold sm:text-2xl">All tokens on Cookie Chain</h1>
@@ -152,6 +152,6 @@ export default function TokensPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }
