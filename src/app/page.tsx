@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ArrowRight, BarChart3, Eye, LayoutDashboard, Loader2 } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Eye, LayoutDashboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { RPC_URL } from "@/lib/constants";
 import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
@@ -34,14 +34,19 @@ const features = [
 ];
 
 async function getSlotHeight() {
-  try {
+  async function rpcCall(method: string) {
     const res = await fetch(RPC_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getSlotHeight", params: [] }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [] }),
     });
     const json = (await res.json()) as { result?: number };
-    return json.result ?? null;
+    return typeof json.result === "number" ? json.result : null;
+  }
+  try {
+    const height = await rpcCall("getSlotHeight");
+    if (height !== null) return height;
+    return await rpcCall("getSlot");
   } catch {
     return null;
   }
@@ -89,7 +94,7 @@ export default function HomePage() {
           <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">
             <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Price</div>
             <div className="mt-1 font-mono text-sm font-bold text-primary sm:text-lg">
-              {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : <Loader2 className="h-4 w-4 animate-spin" />}
+              {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : "—"}
             </div>
           </div>
           <div className="min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4">

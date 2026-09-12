@@ -12,7 +12,7 @@ export async function getCookUsdPrice(): Promise<number | null> {
   inflight = (async () => {
     try {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COOK_PRICE_PROVIDER.coingeckoId}&vs_currencies=usd`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) return cachedPrice;
       const data = (await res.json()) as Record<string, { usd?: number }>;
       const price = data[COOK_PRICE_PROVIDER.coingeckoId]?.usd ?? null;
