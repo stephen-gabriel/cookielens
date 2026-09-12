@@ -15,19 +15,19 @@ export function WalletButton() {
 
   if (connectedWallet && account) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-sm text-text-secondary">{truncateAddress(account.address)}</span>
-        <button
-          onClick={async () => {
-            await disconnect();
-            toast.success("Disconnected");
-          }}
-          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-text-secondary transition hover:border-error/50 hover:text-error"
-        >
-          <LogOut className="h-4 w-4" />
-          Disconnect
-        </button>
-      </div>
+<div className="flex items-center gap-2 sm:gap-3">
+      <span className="font-mono text-xs text-text-secondary sm:text-sm">{truncateAddress(account.address)}</span>
+      <button
+        onClick={async () => {
+          await disconnect();
+          toast.success("Disconnected");
+        }}
+        className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-text-secondary transition hover:border-error/50 hover:text-error sm:px-3 sm:py-2 sm:text-sm"
+      >
+        <LogOut className="h-4 w-4" />
+        Disconnect
+      </button>
+    </div>
     );
   }
 
@@ -56,7 +56,7 @@ export function WalletButton() {
           }
         }}
         disabled={connecting}
-        className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition hover:bg-primary/90 disabled:opacity-60"
+        className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-background transition hover:bg-primary/90 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-sm"
       >
         {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect Nightly"}
       </button>

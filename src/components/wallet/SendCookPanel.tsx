@@ -82,10 +82,10 @@ export function SendCookPanel({
   const maxBalance = Math.max(0, cookBalance - 0.00001);
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-5">
+    <section className="rounded-lg border border-border bg-surface p-4 sm:p-5">
       <div className="flex items-center gap-2">
         <Send className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Send COOK</h2>
+        <h2 className="text-base font-semibold sm:text-lg">Send COOK</h2>
       </div>
 
       {!connectedWallet || !account ? (

@@ -72,10 +72,10 @@ export default function TokensPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center gap-2">
-        <BarChart3 className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">All tokens on Cookie Chain</h1>
+        <BarChart3 className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
+        <h1 className="text-xl font-bold sm:text-2xl">All tokens on Cookie Chain</h1>
       </div>
-      <p className="mt-2 text-text-secondary">
+      <p className="mt-2 text-sm text-text-secondary sm:text-base">
         Every fungible token discovered on Cookie Chain, ranked by holder count.
       </p>
 
@@ -89,23 +89,23 @@ export default function TokensPage() {
 
       {!loading && (
         <div className="mt-8 overflow-x-auto rounded-lg border border-border bg-surface">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[560px] text-left text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-                <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">Token</th>
-                <th className="px-4 py-3 text-right font-medium">Price</th>
-                <th className="px-4 py-3 text-right font-medium">24h</th>
-                <th className="px-4 py-3 text-right font-medium">Market cap</th>
-                <th className="px-4 py-3 text-right font-medium">Holders</th>
+                <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">#</th>
+                <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
+                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
+                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">24h</th>
+                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Market cap</th>
+                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Holders</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-border/50 bg-surface-hover/30">
-                <td className="px-4 py-3 font-mono text-text-secondary">1</td>
-                <td className="px-4 py-3">
-                  <Link href="/token/36ZrtQoab5MhhySaP1YSTwUahSk6GRVUTtZ6cuVfm9e1" className="flex items-center gap-3">
-                    <TokenImage image={null} symbol="COOK" className="h-8 w-8 bg-primary/15 text-primary" />
+                <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">1</td>
+                <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+                  <Link href="/token/36ZrtQoab5MhhySaP1YSTwUahSk6GRVUTtZ6cuVfm9e1" className="flex items-center gap-2 sm:gap-3">
+                    <TokenImage image={null} symbol="COOK" className="h-7 w-7 bg-primary/15 text-primary sm:h-8 sm:w-8" />
                     <div>
                       <div className="font-medium text-text-primary">
                         Cookie <span className="ml-1 font-mono text-xs text-text-secondary">COOK</span>
@@ -114,16 +114,16 @@ export default function TokensPage() {
                     </div>
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-text-primary">{formatUsd(cook?.priceUsd)}</td>
-                <td className="px-4 py-3 text-right font-mono text-text-secondary">—</td>
-                <td className="px-4 py-3 text-right font-mono text-text-primary">{formatUsd(cook?.marketCapUsd)}</td>
-                <td className="px-4 py-3 text-right font-mono text-text-primary">—</td>
+                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.priceUsd)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">—</td>
+                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.marketCapUsd)}</td>
+                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">—</td>
               </tr>
               {rows.map((r, i) => (
                 <tr key={r.mint} className="border-b border-border/50 last:border-0 hover:bg-surface-hover/50">
-                  <td className="px-4 py-3 font-mono text-text-secondary">{i + 2}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/token/${r.mint}`} className="flex items-center gap-3">
+                  <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">{i + 2}</td>
+                  <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+                    <Link href={`/token/${r.mint}`} className="flex items-center gap-2 sm:gap-3">
                       <TokenImage image={r.image} symbol={r.symbol} />
                       <div>
                         <div className="font-medium text-text-primary">
@@ -133,17 +133,17 @@ export default function TokensPage() {
                       </div>
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-text-primary">{formatUsd(r.priceUsd)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-secondary">{formatPct(r.change24h)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-text-primary">{formatUsd(r.marketCapUsd)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-text-secondary">
+                  <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
                     {r.holderCount > 0 ? formatCompact(r.holderCount) : "—"}
                   </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-text-secondary">
+                  <td colSpan={6} className="px-3 py-8 text-center text-text-secondary sm:px-4">
                     No tokens discovered yet.
                   </td>
                 </tr>

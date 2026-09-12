@@ -22,10 +22,10 @@ export default function WatchPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex items-center gap-2">
-        <Eye className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Watch any wallet</h1>
+        <Eye className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
+        <h1 className="text-xl font-bold sm:text-2xl">Watch any wallet</h1>
       </div>
-      <p className="mt-2 text-text-secondary">
+      <p className="mt-2 text-sm text-text-secondary sm:text-base">
         Paste any Cookie Chain address to see its COOK balance and token holdings — no connection needed.
       </p>
 
@@ -35,7 +35,7 @@ export default function WatchPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="e.g. G3mm95M4ns7mk8oseWGJnirvgyMahMz3vZEUhdJn8oGX"
-          className="w-full rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-sm text-text-primary outline-none transition focus:border-primary"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-xs text-text-primary outline-none transition focus:border-primary sm:text-sm"
         />
         <button
           onClick={submit}
@@ -65,7 +65,7 @@ export default function WatchPage() {
       {data && !loading && (
         <>
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="break-all font-mono text-sm text-text-secondary">{data.address}</h2>
+            <h2 className="break-all font-mono text-xs text-text-secondary sm:text-sm">{data.address}</h2>
             <div className="flex items-center gap-4">
               <div className="rounded-md border border-border bg-surface px-3 py-2 text-sm">
                 <span className="mr-2 text-text-secondary">Total</span>
@@ -84,7 +84,7 @@ export default function WatchPage() {
       )}
 
       {!searched && (
-        <div className="mt-16 rounded-lg border border-dashed border-border p-10 text-center text-text-secondary">
+        <div className="mt-16 rounded-lg border border-dashed border-border p-8 text-center text-sm text-text-secondary sm:p-10 sm:text-base">
           <p>Try a known address:</p>
           <Link
             href="#"

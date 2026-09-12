@@ -63,7 +63,7 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
         <div className="min-w-0 flex-1">
           <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold sm:text-2xl">
             <span className="break-words">{asset.content.metadata.name ?? "Untitled"}</span>
-            <span className="font-mono text-sm text-text-secondary">{asset.content.metadata.symbol}</span>
+            <span className="font-mono text-xs text-text-secondary sm:text-sm">{asset.content.metadata.symbol}</span>
           </h1>
           <Link href={`${EXPLORER_URL}/address/${mint}`} target="_blank" rel="noreferrer" className="break-all font-mono text-xs text-primary underline">
             {truncateAddress(mint, 8)}
@@ -71,22 +71,22 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-border bg-surface p-4">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="rounded-lg border border-border bg-surface p-3 sm:p-4">
           <div className="text-xs uppercase tracking-wide text-text-secondary">Price</div>
-          <div className="mt-1 font-mono text-lg font-semibold text-primary">{formatUsd(price)}</div>
+          <div className="mt-1 font-mono text-base font-semibold text-primary sm:text-lg">{formatUsd(price)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4">
+        <div className="rounded-lg border border-border bg-surface p-3 sm:p-4">
           <div className="text-xs uppercase tracking-wide text-text-secondary">Market cap</div>
-          <div className="mt-1 font-mono text-lg font-semibold">{formatUsd(marketCap)}</div>
+          <div className="mt-1 font-mono text-base font-semibold sm:text-lg">{formatUsd(marketCap)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4">
+        <div className="rounded-lg border border-border bg-surface p-3 sm:p-4">
           <div className="text-xs uppercase tracking-wide text-text-secondary">Total supply</div>
-          <div className="mt-1 font-mono text-lg font-semibold">{formatCompact(supply)}</div>
+          <div className="mt-1 font-mono text-base font-semibold sm:text-lg">{formatCompact(supply)}</div>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4">
+        <div className="rounded-lg border border-border bg-surface p-3 sm:p-4">
           <div className="text-xs uppercase tracking-wide text-text-secondary">Decimals</div>
-          <div className="mt-1 font-mono text-lg font-semibold">{decimals}</div>
+          <div className="mt-1 font-mono text-base font-semibold sm:text-lg">{decimals}</div>
         </div>
       </div>
 

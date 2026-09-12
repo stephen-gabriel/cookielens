@@ -16,9 +16,9 @@ export default function PortfolioPage() {
   if (!connectedWallet || !account) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center">
-        <LayoutDashboard className="h-12 w-12 text-text-secondary" />
-        <h1 className="mt-4 text-2xl font-bold">Connect your wallet</h1>
-        <p className="mt-2 max-w-md text-text-secondary">
+        <LayoutDashboard className="h-10 w-10 text-text-secondary sm:h-12 sm:w-12" />
+        <h1 className="mt-4 text-xl font-bold sm:text-2xl">Connect your wallet</h1>
+        <p className="mt-2 max-w-md text-sm text-text-secondary sm:text-base">
           Connect your Nightly wallet to see your COOK balance and every token you hold on Cookie Chain.
         </p>
         <Link href="/" className="mt-6 text-primary underline">
@@ -32,8 +32,8 @@ export default function PortfolioPage() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Portfolio</h1>
-          <p className="break-all font-mono text-sm text-text-secondary">{account.address}</p>
+          <h1 className="text-xl font-bold sm:text-2xl">Portfolio</h1>
+          <p className="break-all font-mono text-xs text-text-secondary sm:text-sm">{account.address}</p>
         </div>
         <button
           onClick={refresh}
@@ -58,26 +58,26 @@ export default function PortfolioPage() {
 
       {data && !loading && (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-border bg-surface p-5">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <div className="rounded-lg border border-border bg-surface p-4 sm:p-5">
               <div className="text-xs uppercase tracking-wide text-text-secondary">Total Value</div>
-              <div className="mt-1 font-mono text-2xl font-bold text-primary">{formatUsd(data.totalUsd)}</div>
+              <div className="mt-1 truncate font-mono text-xl font-bold text-primary sm:text-2xl">{formatUsd(data.totalUsd)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-surface p-5">
+            <div className="rounded-lg border border-border bg-surface p-4 sm:p-5">
               <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Balance</div>
-              <div className="mt-1 font-mono text-2xl font-bold">
+              <div className="mt-1 truncate font-mono text-xl font-bold sm:text-2xl">
                 {formatNative(Math.round(data.cookBalance * 1e9))}
-                <span className="ml-1 text-sm text-text-secondary">COOK</span>
+                <span className="ml-1 text-xs text-text-secondary sm:text-sm">COOK</span>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-surface p-5">
+            <div className="rounded-lg border border-border bg-surface p-4 sm:p-5">
               <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Value</div>
-              <div className="mt-1 font-mono text-2xl font-bold">{formatUsd(data.cookUsdValue)}</div>
+              <div className="mt-1 truncate font-mono text-xl font-bold sm:text-2xl">{formatUsd(data.cookUsdValue)}</div>
             </div>
           </div>
 
           <div className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">Holdings</h2>
+            <h2 className="mb-3 text-base font-semibold sm:text-lg">Holdings</h2>
             <HoldingsTable rows={data.tokenHoldings.map((h) => h)} />
           </div>
 

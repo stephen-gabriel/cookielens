@@ -39,20 +39,20 @@ export function TokenImage({ image, symbol, className = "h-8 w-8" }: { image: st
 export function HoldingsTable({ rows }: { rows: RowHolding[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-surface">
-      <table className="w-full min-w-[480px] text-left text-sm">
+      <table className="w-full min-w-[480px] text-left text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-            <th className="px-4 py-3 font-medium">Token</th>
-            <th className="px-4 py-3 text-right font-medium">Amount</th>
-            <th className="px-4 py-3 text-right font-medium">Price</th>
-            <th className="px-4 py-3 text-right font-medium">Value</th>
+            <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
+            <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Amount</th>
+            <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
+            <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Value</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.mint} className="border-b border-border/50 last:border-0 hover:bg-surface-hover/50">
-              <td className="px-4 py-3">
-                <Link href={`/token/${r.mint}`} className="flex items-center gap-3">
+              <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+                <Link href={`/token/${r.mint}`} className="flex items-center gap-2 sm:gap-3">
                   <TokenImage image={r.image} symbol={r.symbol} />
                   <div>
                     <div className="font-medium text-text-primary">
@@ -62,16 +62,16 @@ export function HoldingsTable({ rows }: { rows: RowHolding[] }) {
                   </div>
                 </Link>
               </td>
-              <td className="px-4 py-3 text-right font-mono text-text-primary">
+              <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">
                 {formatCompact(r.amount)}
               </td>
-              <td className="px-4 py-3 text-right font-mono text-text-secondary">{formatUsd(r.priceUsd)}</td>
-              <td className="px-4 py-3 text-right font-mono text-text-primary">{formatUsd(r.valueUsd)}</td>
+              <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
+              <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.valueUsd)}</td>
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-4 py-8 text-center text-text-secondary">
+              <td colSpan={4} className="px-3 py-8 text-center text-text-secondary sm:px-4">
                 No tokens found.
               </td>
             </tr>
