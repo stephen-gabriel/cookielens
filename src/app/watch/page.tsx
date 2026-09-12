@@ -29,18 +29,18 @@ export default function WatchPage() {
         Paste any Cookie Chain address to see its COOK balance and token holdings — no connection needed.
       </p>
 
-      <div className="mt-6 flex gap-2">
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="e.g. G3mm95M4ns7mk8oseWGJnirvgyMahMz3vZEUhdJn8oGX"
-          className="w-full max-w-xl rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-sm text-text-primary outline-none transition focus:border-primary"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-sm text-text-primary outline-none transition focus:border-primary"
         />
         <button
           onClick={submit}
           disabled={!isValidAddress(input.trim()) || loading}
-          className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           Track
@@ -65,7 +65,7 @@ export default function WatchPage() {
       {data && !loading && (
         <>
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-mono text-sm text-text-secondary">{data.address}</h2>
+            <h2 className="break-all font-mono text-sm text-text-secondary">{data.address}</h2>
             <div className="flex items-center gap-4">
               <div className="rounded-md border border-border bg-surface px-3 py-2 text-sm">
                 <span className="mr-2 text-text-secondary">Total</span>

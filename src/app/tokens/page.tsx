@@ -89,7 +89,7 @@ export default function TokensPage() {
 
       {!loading && (
         <div className="mt-8 overflow-x-auto rounded-lg border border-border bg-surface">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[560px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
                 <th className="px-4 py-3 font-medium">#</th>

@@ -33,7 +33,7 @@ export default function PortfolioPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Portfolio</h1>
-          <p className="font-mono text-sm text-text-secondary">{account.address}</p>
+          <p className="break-all font-mono text-sm text-text-secondary">{account.address}</p>
         </div>
         <button
           onClick={refresh}

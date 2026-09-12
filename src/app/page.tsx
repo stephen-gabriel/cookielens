@@ -62,7 +62,7 @@ export default function HomePage() {
         <span className="rounded-full border border-border bg-surface px-4 py-1 text-xs text-text-secondary">
           Cookie Chain ecosystem analytics
         </span>
-        <h1 className="mt-6 max-w-3xl text-5xl font-bold leading-tight tracking-tight">
+        <h1 className="mt-6 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
           See every cookie on <span className="text-primary">Cookie Chain</span>
         </h1>
         <p className="mt-4 max-w-xl text-lg text-text-secondary">
@@ -85,26 +85,26 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-16 grid w-full max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-border bg-surface p-4">
+        <div className="mt-16 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
             <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Price</div>
-            <div className="mt-1 font-mono text-lg font-bold text-primary">
+            <div className="mt-1 font-mono text-base font-bold text-primary sm:text-lg">
               {cook?.priceUsd ? `$${cook.priceUsd.toFixed(6)}` : <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
             <div className="text-xs uppercase tracking-wide text-text-secondary">COOK Market Cap</div>
-            <div className="mt-1 font-mono text-lg font-bold">
+            <div className="mt-1 truncate font-mono text-base font-bold sm:text-lg">
               {cook?.marketCapUsd ? `$${cook.marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
             <div className="text-xs uppercase tracking-wide text-text-secondary">Network</div>
-            <div className="mt-1 font-mono text-lg font-bold text-secondary">Cookie Chain</div>
+            <div className="mt-1 truncate font-mono text-base font-bold text-secondary sm:text-lg">Cookie Chain</div>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="min-w-0 rounded-lg border border-border bg-surface p-4">
             <div className="text-xs uppercase tracking-wide text-text-secondary">Chain Height</div>
-            <div className="mt-1 font-mono text-lg font-bold">{slot ? slot.toLocaleString() : "—"}</div>
+            <div className="mt-1 truncate font-mono text-base font-bold sm:text-lg">{slot ? slot.toLocaleString() : "—"}</div>
           </div>
         </div>
       </section>

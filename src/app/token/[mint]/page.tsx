@@ -58,14 +58,14 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <TokenImage image={asset.content.links?.image ?? null} symbol={asset.content.metadata.symbol ?? "?"} className="h-16 w-16" />
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
-            {asset.content.metadata.name ?? "Untitled"}
+        <div className="min-w-0 flex-1">
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold sm:text-2xl">
+            <span className="break-words">{asset.content.metadata.name ?? "Untitled"}</span>
             <span className="font-mono text-sm text-text-secondary">{asset.content.metadata.symbol}</span>
           </h1>
-          <Link href={`${EXPLORER_URL}/address/${mint}`} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary underline">
+          <Link href={`${EXPLORER_URL}/address/${mint}`} target="_blank" rel="noreferrer" className="break-all font-mono text-xs text-primary underline">
             {truncateAddress(mint, 8)}
           </Link>
         </div>

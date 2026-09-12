@@ -39,7 +39,7 @@ export function TokenImage({ image, symbol, className = "h-8 w-8" }: { image: st
 export function HoldingsTable({ rows }: { rows: RowHolding[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-surface">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[480px] text-left text-sm">
         <thead>
           <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
             <th className="px-4 py-3 font-medium">Token</th>
