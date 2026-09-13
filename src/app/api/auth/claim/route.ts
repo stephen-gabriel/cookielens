@@ -31,7 +31,12 @@ export async function POST(req: NextRequest) {
     .where(and(eq(claimChallenges.wallet, wallet), eq(claimChallenges.nonce, nonce)))
     .limit(1);
 
-  if (!challenge || challenge.consumed) return jsonError("Challenge not found or already used.", 401);
+  if (!challenge || challenge.consumed) {
+    // A retried claim after a prior partial success must not look like a
+    // forgery — re-issue the pre-signed proof isn't possible, so tell the
+    // client to start the flow over.
+    return jsonError("Challenge already consumed. Refresh and try again.", 409);
+  }
   if (challenge.expiresAt < new Date()) return jsonError("Challenge expired. Request a new one.", 401);
 
   const message = challengeMessage(wallet, nonce);
@@ -39,46 +44,47 @@ export async function POST(req: NextRequest) {
     return jsonError("Signature verification failed.", 401);
   }
 
-  const result = await db.transaction(async (tx) => {
-    await tx.update(claimChallenges).set({ consumed: true }).where(eq(claimChallenges.id, challenge.id));
+  // neon-http has no .transaction(); run the steps sequentially. The
+  // challenge is consumed as its own statement and signer identity is
+  // already proven by the verified signature.
+  await db
+    .update(claimChallenges)
+    .set({ consumed: true })
+    .where(and(eq(claimChallenges.wallet, wallet), eq(claimChallenges.nonce, nonce)));
 
-    const [existing] = await tx.select().from(users).where(eq(users.walletAddress, wallet)).limit(1);
-    let user;
-    if (existing) {
-      if (existing.username !== username) {
-        await tx.update(users).set({ username }).where(eq(users.id, existing.id));
-      }
-      user = { ...existing, username };
-    } else {
-      const [created] = await tx
-        .insert(users)
-        .values({ walletAddress: wallet, username })
-        .onConflictDoNothing()
-        .returning();
-      if (!created) {
-        // Username taken by another wallet.
-        return { conflict: true } as const;
-      }
-      user = created;
+  const [existing] = await db.select().from(users).where(eq(users.walletAddress, wallet)).limit(1);
+  let user;
+  if (existing) {
+    if (existing.username !== username) {
+      await db.update(users).set({ username }).where(eq(users.id, existing.id));
     }
-    return { user } as const;
-  });
-
-  if ("conflict" in result) return jsonError("Username is already taken.", 409);
+    user = { ...existing, username };
+  } else {
+    const [created] = await db
+      .insert(users)
+      .values({ walletAddress: wallet, username })
+      .onConflictDoNothing()
+      .returning();
+    if (!created) {
+      // Username taken by another wallet.
+      return jsonError("Username is already taken.", 409);
+    }
+    user = created;
+  }
 
   const res = NextResponse.json({
     ok: true,
     profile: {
       wallet,
-      username: result.user.username,
-      userId: result.user.id,
+      username: user.username,
+      userId: user.id,
       verified: true,
     },
   });
   setSessionCookie(res, {
     wallet,
-    userId: result.user.id,
-    username: result.user.username,
+    userId: user.id,
+    username: user.username,
     exp: 0,
   });
   return res;

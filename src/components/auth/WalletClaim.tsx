@@ -59,10 +59,21 @@ export function WalletClaim({ surface }: { surface?: "page" | "banner" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wallet: account.address }),
       });
-      const challenge = (await challengeRes.json()) as { ok?: boolean; nonce?: string; message?: string; error?: string };
-      if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
-        throw new Error(challenge.error ?? "Could not start verification.");
+      let challengeJson: {
+        ok?: boolean;
+        nonce?: string;
+        message?: string;
+        error?: string;
+      } = {};
+      try {
+        challengeJson = await challengeRes.json();
+      } catch {
+        challengeJson = {};
       }
+      if (!challengeRes.ok || !challengeJson.nonce || !challengeJson.message) {
+        throw new Error(challengeJson.error ?? `Could not start verification (HTTP ${challengeRes.status}).`);
+      }
+      const challenge = challengeJson as { nonce: string; message: string };
 
       const { signature, signedMessage } = await signMessageForClaim(connectedWallet, account, challenge.message);
 
@@ -77,8 +88,13 @@ export function WalletClaim({ surface }: { surface?: "page" | "banner" }) {
           username: username.trim(),
         }),
       });
-      const claim = (await claimRes.json()) as { ok?: boolean; error?: string };
-      if (!claimRes.ok) throw new Error(claim.error ?? "Claim failed.");
+      let claim: { ok?: boolean; error?: string } = {};
+      try {
+        claim = await claimRes.json();
+      } catch {
+        claim = {};
+      }
+      if (!claimRes.ok) throw new Error(claim.error ?? `Claim failed (HTTP ${claimRes.status}).`);
 
       await refresh();
       toast.success("Wallet claimed — profile created.");
