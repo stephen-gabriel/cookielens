@@ -1,6 +1,7 @@
 "use client";
 
 import { Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction } from "@solana/web3.js";
+import type { WalletAccount } from "@wallet-standard/base";
 import type { UiWallet } from "@wallet-standard/ui";
 import { getWalletFeature } from "@wallet-standard/ui";
 
@@ -9,21 +10,24 @@ const SOLANA_CHAIN = process.env.NEXT_PUBLIC_WALLET_STANDARD_CHAIN ?? "solana:ma
 const SIGN_TX = "solana:signTransaction";
 const SIGN_AND_SEND_TX = "solana:signAndSendTransaction";
 
+type SignTransactionInput = {
+  account: WalletAccount;
+  transaction: Uint8Array;
+  chain: string;
+};
+
 type SignTransactionFeature = {
   "solana:signTransaction": {
-    signTransaction: (input: {
-      transaction: Uint8Array;
-      chain: string;
-    }) => Promise<{ signedTransactions: readonly (Transaction | Uint8Array)[] }>;
+    signTransaction: (input: SignTransactionInput) => Promise<
+      | { signedTransaction?: Transaction | Uint8Array }
+      | { signedTransactions?: readonly (Transaction | Uint8Array)[] }
+    >;
   };
 };
 
 type SignAndSendTransactionFeature = {
   "solana:signAndSendTransaction": {
-    signAndSendTransaction: (input: {
-      transaction: Uint8Array;
-      chain: string;
-    }) => Promise<{ signature: Uint8Array }>;
+    signAndSendTransaction: (input: SignTransactionInput) => Promise<{ signature: Uint8Array }>;
   };
 };
 
@@ -91,6 +95,7 @@ export async function prepareAggregateSwapTransfer(
 /** Ask the wallet to sign, then broadcast ourselves so we control confirmation timing. */
 export async function walletSignAndSubmit(
   wallet: UiWallet,
+  account: WalletAccount,
   prepared: PreparedCookTransfer,
   connection: Connection,
 ): Promise<string> {
@@ -99,8 +104,17 @@ export async function walletSignAndSubmit(
   if (wallet.features.includes(SIGN_TX)) {
     try {
       const feature = getWalletFeature(wallet, SIGN_TX) as unknown as SignTransactionFeature["solana:signTransaction"];
-      const { signedTransactions } = await feature.signTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
-      const signed = signedTransactions?.[0];
+      const result = await feature.signTransaction({
+        account,
+        transaction: prepared.txBytes,
+        chain: SOLANA_CHAIN,
+      });
+      const signed =
+        "signedTransaction" in result
+          ? result.signedTransaction
+          : "signedTransactions" in result
+            ? result.signedTransactions?.[0]
+            : undefined;
       if (signed) {
         const bytes = signed instanceof Transaction ? signed.serialize() : new Uint8Array(signed);
         return await connection.sendRawTransaction(bytes);
@@ -117,7 +131,11 @@ export async function walletSignAndSubmit(
         wallet,
         SIGN_AND_SEND_TX,
       ) as unknown as SignAndSendTransactionFeature["solana:signAndSendTransaction"];
-      const { signature } = await feature.signAndSendTransaction({ transaction: prepared.txBytes, chain: SOLANA_CHAIN });
+      const { signature } = await feature.signAndSendTransaction({
+        account,
+        transaction: prepared.txBytes,
+        chain: SOLANA_CHAIN,
+      });
       return new PublicKey(signature).toBase58();
     } catch (err) {
       lastError = err;

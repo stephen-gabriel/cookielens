@@ -59,7 +59,7 @@ export function SendCookPanel({
       const prepared = await prepareCookTransfer(connection, from, to, amountLamports);
 
       update("submitting", "Broadcasting to Cookie Chain…");
-      const signature = await walletSignAndSubmit(connectedWallet, prepared, connection);
+      const signature = await walletSignAndSubmit(connectedWallet, account, prepared, connection);
       setLastSignature(signature);
 
       update("confirming", "Transaction submitted — confirming on-chain…");

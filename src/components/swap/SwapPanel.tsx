@@ -176,7 +176,7 @@ export function SwapPanel({
       const prepared = await prepareAggregateSwapTransfer(connection, built.transactionBase64);
 
       update("submitting", "Broadcasting to Cookie Chain…");
-      const signature = await walletSignAndSubmit(connectedWallet, prepared, connection);
+      const signature = await walletSignAndSubmit(connectedWallet, account, prepared, connection);
       setLastSignature(signature);
 
       update("confirming", "Transaction submitted — confirming on-chain…");
