@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/indexer/run?slots=200&maxMs=45000",
-      "schedule": "* * * * *"
-    }
-  ]
-}

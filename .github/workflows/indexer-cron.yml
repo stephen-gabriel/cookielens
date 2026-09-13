@@ -1,0 +1,27 @@
+name: Indexer Cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger one bounded indexer cycle on Vercel
+        env:
+          URL: ${{ secrets.VERCEL_APP_URL }}
+          TOKEN: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ]; then
+            echo "Add VERCEL_APP_URL and CRON_SECRET secrets to run the indexer cron."
+            exit 0
+          fi
+          curl -sS --max-time 115 \
+            "$URL/api/indexer/run?token=$TOKEN&slots=300" \
+            && echo "" \
+            || echo "indexer run non-zero (feed may simply be up to date)"

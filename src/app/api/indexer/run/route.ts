@@ -11,7 +11,6 @@ const WORKER_PATH = path.resolve(process.cwd(), "scripts", "indexer.cjs");
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 type WorkerModule = {
   runBoundedCycle: (opts?: { maxSlots?: number; maxMs?: number }) => Promise<{
@@ -47,7 +46,7 @@ async function handle(req: NextRequest) {
 
   const params = new URL(req.url).searchParams;
   const maxSlots = Math.max(10, Math.min(400, Number(params.get("slots")) || 200));
-  const maxMs = Math.max(5000, Math.min(50000, Number(params.get("maxMs")) || 45000));
+  const maxMs = Math.max(5000, Math.min(50000, Number(params.get("maxMs")) || 9000));
 
   try {
     const worker = runtimeRequire(WORKER_PATH) as WorkerModule;
