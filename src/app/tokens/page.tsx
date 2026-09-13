@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BarChart3, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { searchFungibleAssets, type DasAsset } from "@/lib/das";
 import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
 import { TokenImage } from "@/components/portfolio/HoldingsTable";
 import { formatCompact, formatPct, formatUsd } from "@/lib/format";
+
+const COOK_MINT = "36ZrtQoab5MhhySaP1YSTwUahSk6GRVUTtZ6cuVfm9e1";
 
 type Row = {
   mint: string;
@@ -43,6 +45,10 @@ export default function TokensPage() {
   const [cook, setCook] = useState<CookMarketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fullRows = useRef<Row[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -59,6 +65,7 @@ export default function TokensPage() {
           list.push(row);
         }
         list.sort((x, y) => y.holderCount - x.holderCount);
+        fullRows.current = list;
         setRows(list);
         setCook(market);
       } catch (err) {
@@ -69,6 +76,38 @@ export default function TokensPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    const trimmed = query.trim();
+    timer.current = setTimeout(async () => {
+      if (!trimmed) {
+        setRows(fullRows.current);
+        setSearching(false);
+        return;
+      }
+      setSearching(true);
+      try {
+        const assets = await searchFungibleAssets(trimmed, 100);
+        const seen = new Set<string>();
+        const list: Row[] = [];
+        for (const a of assets) {
+          if (seen.has(a.id)) continue;
+          seen.add(a.id);
+          if (a.id === COOK_MINT) continue;
+          list.push(toRow(a));
+        }
+        setRows(list);
+      } catch {
+        setRows([]);
+      } finally {
+        setSearching(false);
+      }
+    }, trimmed ? 250 : 0);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [query]);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center gap-2">
@@ -76,8 +115,19 @@ export default function TokensPage() {
         <h1 className="text-xl font-bold sm:text-2xl">All tokens on Cookie Chain</h1>
       </div>
       <p className="mt-2 text-sm text-text-secondary sm:text-base">
-        Every fungible token discovered on Cookie Chain, ranked by holder count.
+        Every fungible token discovered on Cookie Chain, ranked by holder count. Search by name or symbol.
       </p>
+
+      <div className="mt-6 flex max-w-md items-center gap-2 rounded-lg border border-border bg-surface px-3">
+        <Search className="h-4 w-4 shrink-0 text-text-secondary" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search tokens…"
+          className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-text-secondary/70"
+        />
+        {searching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-text-secondary" />}
+      </div>
 
       {error && <div className="mt-6 rounded-lg border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</div>}
       {loading && (
@@ -144,7 +194,7 @@ export default function TokensPage() {
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-text-secondary sm:px-4">
-                    No tokens discovered yet.
+                    {query.trim() ? "No tokens match that search." : "No tokens discovered yet."}
                   </td>
                 </tr>
               )}

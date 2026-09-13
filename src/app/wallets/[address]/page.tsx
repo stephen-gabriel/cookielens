@@ -19,6 +19,8 @@ type WalletProfile = {
     username: string | null;
     claimedAt: string | null;
     firstObservedAt: string | null;
+    lastActivityAt: string | null;
+    daysActive: number;
     txCount: number;
     tokenInteractions: number;
     followers: number;
@@ -173,6 +175,7 @@ export default function WalletProfilePage() {
         </div>
 
         <p className="mt-3 text-xs text-text-secondary">
+          {wallet.daysActive > 0 && <>Active ~{wallet.daysActive}{wallet.daysActive === 1 ? " day" : " days"} · </>}
           First observed {wallet.firstObservedAt ? new Date(wallet.firstObservedAt).toLocaleDateString() : "—"} ·{" "}
           {wallet.verified ? "Claimed profile — ownership verified on-chain via signature." : "Not yet claimed."}
         </p>

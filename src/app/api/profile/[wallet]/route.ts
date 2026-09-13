@@ -69,6 +69,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
       username: user?.username ?? null,
       claimedAt: user?.claimedAt?.toISOString() ?? null,
       firstObservedAt: walletRow?.firstObservedAt?.toISOString() ?? null,
+      lastActivityAt: walletRow?.lastActivityAt?.toISOString() ?? null,
+      daysActive:
+        walletRow?.firstObservedAt && walletRow?.lastActivityAt
+          ? Math.max(1, Math.round((walletRow.lastActivityAt.getTime() - walletRow.firstObservedAt.getTime()) / 86400000))
+          : 0,
       txCount: walletRow?.txCount ?? 0,
       tokenInteractions: walletRow?.tokenInteractions ?? 0,
       followers: Number(followersRow?.n ?? 0),

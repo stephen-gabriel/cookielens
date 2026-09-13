@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, events: mapEvents(rows) });
     }
 
-    const rows = await base.where(eq(socialEvents.archetype, "significant_entry")).limit(limit);
+    const rows = await base.limit(limit);
     return NextResponse.json({ ok: true, events: mapEvents(rows) });
   } catch (err) {
     console.error("[feed]", err);

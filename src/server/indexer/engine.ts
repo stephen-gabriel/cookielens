@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, prefer-const */
 import { neon } from "@neondatabase/serverless";
 
+import { fmtAmount, short } from "@/lib/indexer-format";
+import { communitySignificance, pumpSignificance, shouldEmitConvergence } from "@/lib/significance";
+
 const COOK_DECIMALS = 9;
 const COOK_PRICE_USD = 0.00008877;
 const SYS_PROGRAM_ID = "11111111111111111111111111111111";
@@ -224,18 +227,6 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
   }
 
   // ---- Significance engine -----------------------------------------------------
-  function short(wallet: string) {
-    return `${wallet.slice(0, 4)}...`;
-  }
-  function fmtAmount(amount: unknown) {
-    const n = Number(amount);
-    if (!Number.isFinite(n)) return String(amount);
-    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  }
-  function pumpSignificance(holders: number, pct: number) {
-    if (holders < 50) return pct;
-    return Math.max(0, pct - 50);
-  }
   async function tokenSymbol(mint: string) {
     const rows = (await sql`select symbol from tokens where mint = ${mint}`) as {
       symbol: string | null;
@@ -247,6 +238,13 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
       select 1 as hit from activities where wallet = ${wallet}
         and token_mint = ${mint} and signature <> ${excludeSignature} limit 1`) as { hit: number }[];
     return rows.length > 0;
+  }
+  async function verifiedWalletCount(addresses: string[]) {
+    if (addresses.length === 0) return 0;
+    const rows = (await sql`
+      select count(distinct wallet_address)::int as n from users
+      where wallet_address = any(${addresses})`) as { n: number }[];
+    return Number(rows[0]?.n ?? 0);
   }
 
   async function runSignificance(cycleActs: Activity[]) {
@@ -283,6 +281,31 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
         sourceActivityId: act.id,
       });
     }
+
+    // community_convergence — several distinct wallets interacted with the
+    // same token within this cycle. Deterministic: count of distinct wallets.
+    const byMint = new Map<string, Set<string>>();
+    for (const act of cycleActs) {
+      const set = byMint.get(act.tokenMint);
+      if (set) set.add(act.wallet);
+      else byMint.set(act.tokenMint, new Set([act.wallet]));
+    }
+    for (const [mint, wallets] of byMint) {
+      if (!shouldEmitConvergence(wallets.size)) continue;
+      const verified = await verifiedWalletCount([...wallets].slice(0, 50));
+      events.push({
+        archetype: "community_convergence",
+        wallet: null,
+        tokenMint: mint,
+        significance: communitySignificance(wallets.size, verified),
+        payload: {
+          title: `${await tokenSymbol(mint)} is attracting wallets`,
+          metrics: { buyers: wallets.size, verified: verified },
+          social: { wallets: wallets.size, buyers: wallets.size, verifiedWallets: verified, followedWallets: 0 },
+        },
+        sourceActivityId: null,
+      });
+    };
 
     return events;
   }

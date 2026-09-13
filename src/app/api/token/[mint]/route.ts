@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getDb } from "@/server/db";
-import { activities, tokens, watches } from "@/server/db/schema";
+import { activities, tokens, tokenStats, watches } from "@/server/db/schema";
 import { isValidAddress } from "@/lib/chain";
 import { readSession } from "@/server/auth/session";
 import { jsonError } from "@/server/http";
@@ -26,6 +26,28 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ mint: stri
     .select({ n: count() })
     .from(activities)
     .where(and(eq(activities.tokenMint, mint), eq(activities.type, "sell")));
+
+  const [statsRow] = await db
+    .select({
+      holderCount: tokenStats.holderCount,
+      buyers1h: tokenStats.buyers1h,
+      sellers1h: tokenStats.sellers1h,
+      volume24h: tokenStats.volume24h,
+      sampledAt: tokenStats.sampledAt,
+    })
+    .from(tokenStats)
+    .where(eq(tokenStats.mint, mint))
+    .orderBy(desc(tokenStats.sampledAt))
+    .limit(1);
+
+  const verifiedRow = (await db.execute(sql`
+    select count(distinct a.wallet)::int as n from activities a
+    where a.token_mint = ${mint}
+      and a.timestamp > now() - interval '24 hours'
+      and exists (select 1 from users u where u.wallet_address = a.wallet)`)) as unknown as {
+    rows?: { n: number }[];
+  };
+  const verifiedBuyers = Number(verifiedRow.rows?.[0]?.n ?? 0);
 
   const recent = await db
     .select({
@@ -71,6 +93,17 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ mint: stri
     activity: {
       buyers: Number(buyersRow?.n ?? 0),
       sellers: Number(sellersRow?.n ?? 0),
+    },
+    community: {
+      holders: token?.holderCount ?? 0,
+      holdersDelta:
+        statsRow && statsRow.holderCount !== null && Number(statsRow.holderCount) > 0
+          ? (token?.holderCount ?? 0) - Number(statsRow.holderCount)
+          : null,
+      buyers1h: statsRow ? Number(statsRow.buyers1h ?? 0) : 0,
+      sellers1h: statsRow ? Number(statsRow.sellers1h ?? 0) : 0,
+      volume24h: token?.volume24h ? Number(token.volume24h) : null,
+      verifiedBuyers,
     },
     recentActivity: recent.map((r) => ({
       id: r.id,
