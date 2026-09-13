@@ -29,9 +29,36 @@ type SignMessageFeature = {
 };
 
 /**
+ * Walk any result shape wallets actually return and find the first usable
+ * signature: bare `Uint8Array`, `{ signature }`, `{ signatures: [...] }`, or
+ * arrays/objects nesting these. Returns the base58 string when found.
+ */
+function extractSignature(raw: unknown, depth = 0): string | null {
+  if (depth > 4) return null;
+  if (raw instanceof Uint8Array) return raw.length > 0 ? bs58.encode(raw) : null;
+  if (typeof raw === "string") return raw.length > 0 ? raw : null;
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const sig = extractSignature(item, depth + 1);
+      if (sig) return sig;
+    }
+    return null;
+  }
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    for (const key of ["signatures", "signature", "sig", "signatureBytes"]) {
+      const sig = extractSignature(obj[key], depth + 1);
+      if (sig) return sig;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
  * Sign the exact UTF-8 bytes of a message with the wallet's
  * `solana:signMessage` feature and return the base58 signature.
- * Wallets vary in the result shape (`signatures[0]` vs `signature`).
+ * Wallets vary in the result shape; Nightly returns a bare `Uint8Array`.
  */
 export async function signMessageForClaim(
   wallet: UiWallet,
@@ -48,15 +75,17 @@ export async function signMessageForClaim(
     chain: SOLANA_CHAIN,
   });
   if (process.env.NODE_ENV === "development") {
-    console.warn("[signMessageForClaim] result keys:", Object.keys(result), "sigLens:", result.signatures?.length);
+    const summary =
+      result instanceof Uint8Array
+        ? `bytes(${result.length})`
+        : Object.entries(result as object)
+            .map(([k, v]) => `${k}:${v instanceof Uint8Array ? `bytes(${v.length})` : Array.isArray(v) ? `array(${v.length})` : typeof v}`)
+            .join(", ");
+    console.warn("[signMessageForClaim] result:", summary);
   }
-  const raw = result.signatures?.[0] ?? result.signature;
-  const signature = raw instanceof Uint8Array ? bs58.encode(raw) : typeof raw === "string" ? raw : null;
+  const signature = extractSignature(result);
   if (!signature) {
-    const details = Object.entries(result as object)
-      .map(([k, v]) => `${k}:${v instanceof Uint8Array ? `bytes(${v.length})` : Array.isArray(v) ? `array(${v.length})` : typeof v}`)
-      .join(", ");
-    throw new Error(`Wallet returned no signature (result: ${details || "{}"}).`);
+    throw new Error("Wallet returned no usable signature bytes (result was not bytes / signature(s) / string).");
   }
   return signature;
 }
