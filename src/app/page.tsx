@@ -24,11 +24,11 @@ type IndexerStatus = {
 
 export default function HomePage() {
   const { me, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<Tab>("following");
+  const [tab, setTab] = useState<Tab>("discover");
   const [cook, setCook] = useState<CookMarketData | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
   const [feed, setFeed] = useState<{ tab: Tab; events: FeedEvent[] | null; error: string | null }>({
-    tab: "following",
+    tab: "discover",
     events: null,
     error: null,
   });
@@ -57,9 +57,13 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/feed?tab=${tab}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data: { ok?: boolean; events?: FeedEvent[]; error?: string }) => {
+      .then(async (res) => {
         if (cancelled) return;
+        const data = (await res.json()) as { ok?: boolean; events?: FeedEvent[]; error?: string };
+        if (res.status === 401 && tab === "following") {
+          setFeed({ tab, events: [], error: null });
+          return;
+        }
         if (!data.ok) {
           setFeed({ tab, events: data.events ?? [], error: data.error ?? "Feed unavailable." });
         } else {

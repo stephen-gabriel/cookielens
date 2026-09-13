@@ -48,10 +48,15 @@ export async function signMessageForClaim(
     chain: SOLANA_CHAIN,
   });
   if (process.env.NODE_ENV === "development") {
-    console.debug("[signMessageForClaim] keys:", Object.keys(result), "sigLens:", result.signatures?.length);
+    console.warn("[signMessageForClaim] result keys:", Object.keys(result), "sigLens:", result.signatures?.length);
   }
   const raw = result.signatures?.[0] ?? result.signature;
   const signature = raw instanceof Uint8Array ? bs58.encode(raw) : typeof raw === "string" ? raw : null;
-  if (!signature) throw new Error("Wallet returned no signature.");
+  if (!signature) {
+    const details = Object.entries(result as object)
+      .map(([k, v]) => `${k}:${v instanceof Uint8Array ? `bytes(${v.length})` : Array.isArray(v) ? `array(${v.length})` : typeof v}`)
+      .join(", ");
+    throw new Error(`Wallet returned no signature (result: ${details || "{}"}).`);
+  }
   return signature;
 }
