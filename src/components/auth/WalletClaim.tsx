@@ -64,7 +64,7 @@ export function WalletClaim({ surface }: { surface?: "page" | "banner" }) {
         throw new Error(challenge.error ?? "Could not start verification.");
       }
 
-      const signature = await signMessageForClaim(connectedWallet, challenge.message);
+      const signature = await signMessageForClaim(connectedWallet, account, challenge.message);
 
       const claimRes = await fetch("/api/auth/claim", {
         method: "POST",

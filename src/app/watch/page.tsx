@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eye, Loader2, Search } from "lucide-react";
 import { useState } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
+import { BackButton } from "@/components/ui/BackButton";
 import { HoldingsTable } from "@/components/portfolio/HoldingsTable";
 import { isValidAddress } from "@/lib/chain";
 import { formatNative, formatUsd } from "@/lib/format";
@@ -21,7 +22,8 @@ export default function WatchPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex items-center gap-2">
+      <BackButton />
+      <div className="mt-2 flex items-center gap-2">
         <Eye className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
         <h1 className="text-xl font-bold sm:text-2xl">Watch any wallet</h1>
       </div>

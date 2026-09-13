@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LayoutDashboard, Loader2, RefreshCw } from "lucide-react";
 import { useWallet } from "@/lib/providers";
+import { BackButton } from "@/components/ui/BackButton";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { HoldingsTable } from "@/components/portfolio/HoldingsTable";
 import { SendCookPanel } from "@/components/wallet/SendCookPanel";
@@ -30,7 +31,8 @@ export default function PortfolioPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <BackButton />
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold sm:text-2xl">Portfolio</h1>
           <p className="break-all font-mono text-xs text-text-secondary sm:text-sm">{account.address}</p>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { WalletClaim } from "@/components/auth/WalletClaim";
+import { BackButton } from "@/components/ui/BackButton";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWallet } from "@/lib/providers";
 import { truncateAddress } from "@/lib/format";
@@ -116,6 +117,7 @@ export default function WalletProfilePage() {
 
   return (
     <div className="space-y-4">
+      <BackButton />
       <header className="rounded-lg border border-border bg-surface p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">

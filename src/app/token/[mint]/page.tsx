@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, use } from "react";
 import { getAsset, type DasAsset } from "@/lib/das";
+import { BackButton } from "@/components/ui/BackButton";
 import { TokenImage } from "@/components/portfolio/HoldingsTable";
 import { formatCompact, formatUsd, truncateAddress } from "@/lib/format";
 import { EXPLORER_URL } from "@/lib/constants";
@@ -58,7 +59,8 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="flex flex-wrap items-center gap-4">
+      <BackButton />
+      <div className="mt-2 flex flex-wrap items-center gap-4">
         <TokenImage image={asset.content.links?.image ?? null} symbol={asset.content.metadata.symbol ?? "?"} className="h-16 w-16" />
         <div className="min-w-0 flex-1">
           <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold sm:text-2xl">
