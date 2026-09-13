@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useWallet } from "@/lib/providers";
 import { signMessageForClaim } from "@/lib/walletSign";
 import { truncateAddress } from "@/lib/format";
+import { DemoClaim } from "@/components/auth/DemoClaim";
 
 /**
  * Claim flow (FRD §19): challenge -> sign -> verify -> choose username.
@@ -19,11 +20,7 @@ export function WalletClaim({ surface }: { surface?: "page" | "banner" }) {
   const [submitting, setSubmitting] = useState(false);
 
   if (!connectedWallet || !account) {
-    return (
-      <div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-secondary">
-        Connect your Nightly wallet to claim a profile.
-      </div>
-    );
+    return <DemoClaim />;
   }
 
   if (me) {

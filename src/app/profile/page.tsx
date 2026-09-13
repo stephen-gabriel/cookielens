@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { WalletClaim } from "@/components/auth/WalletClaim";
+import { DemoClaim } from "@/components/auth/DemoClaim";
 import { useWallet } from "@/lib/providers";
 import { truncateAddress } from "@/lib/format";
 
@@ -32,9 +33,10 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!account) return;
+    const address = account?.address ?? me?.wallet;
+    if (!address) return;
     let cancelled = false;
-    fetch(`/api/profile/${encodeURIComponent(account.address)}`, { cache: "no-store" })
+    fetch(`/api/profile/${encodeURIComponent(address)}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data: { ok?: boolean; wallet?: MeProfile["wallet"] }) => {
         if (!cancelled && data.ok && data.wallet) {
@@ -45,7 +47,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [account]);
+  }, [account, me]);
 
   if (loading) {
     return (
@@ -58,9 +60,12 @@ export default function ProfilePage() {
       <div className="rounded-lg border border-border bg-surface p-8 text-center">
         <UserRound className="mx-auto h-8 w-8 text-text-secondary" />
         <h1 className="mt-3 text-lg font-bold">Profile</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Connect your Nightly wallet to claim a profile on Cookie Chain.
-        </p>
+        <div className="mx-auto mt-4 max-w-md text-left">
+          <p className="mb-3 text-sm text-text-secondary">
+            Connect your Nightly wallet to claim a profile on Cookie Chain — or jump straight in with demo mode.
+          </p>
+          <DemoClaim />
+        </div>
       </div>
     );
   }
