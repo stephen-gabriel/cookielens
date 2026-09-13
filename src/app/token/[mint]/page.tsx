@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { getAsset, type DasAsset } from "@/lib/das";
 import { BackButton } from "@/components/ui/BackButton";
 import { TokenImage } from "@/components/portfolio/HoldingsTable";
+import { SwapPanel } from "@/components/swap/SwapPanel";
 import { formatCompact, formatPct, formatUsd, truncateAddress } from "@/lib/format";
 import { EXPLORER_URL } from "@/lib/constants";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -118,6 +119,7 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
   const price = asset.token_info?.price_info?.price_per_token ?? null;
   const marketCap = asset.market_cap ?? null;
   const supply = asset.token_info?.supply ?? 0;
+  const decimals = asset.token_info?.decimals ?? 9;
   const community = ctx?.community;
 
   const buyers = ctx?.recentActivity
@@ -186,6 +188,14 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
           <div className="text-xs uppercase tracking-wide text-text-secondary">Total supply</div>
           <div className="mt-1 font-mono text-base font-semibold sm:text-lg">{formatCompact(supply)}</div>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SwapPanel
+          mint={mint}
+          symbol={asset.content.metadata.symbol ?? "Token"}
+          decimals={decimals}
+        />
       </div>
 
       {community && (

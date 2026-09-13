@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompact, formatPct, formatUsd, truncateAddress } from "@/lib/format";
+import { formatCompact, formatPct, formatUsd, truncateAddress, toRawAmount, fromRawAmount } from "@/lib/format";
 import { fmtAmount, short } from "@/lib/indexer-format";
 
 describe("truncateAddress", () => {
@@ -64,5 +64,33 @@ describe("indexer format helpers", () => {
     expect(fmtAmount(1_000_000)).toBe("1,000,000");
     expect(fmtAmount(null)).toBe("0");
     expect(fmtAmount("not-a-number")).toBe("not-a-number");
+  });
+});
+
+describe("toRawAmount / fromRawAmount", () => {
+  it("converts UI amounts to raw integer units", () => {
+    expect(toRawAmount("1.5", 9)).toBe(1_500_000_000n);
+    expect(toRawAmount("0.000000001", 9)).toBe(1n);
+    expect(toRawAmount("10", 6)).toBe(10_000_000n);
+  });
+
+  it("truncates extra precision instead of failing", () => {
+    expect(toRawAmount("1.1234567891", 9)).toBe(1_123_456_789n);
+  });
+
+  it("converts raw units back to UI strings", () => {
+    expect(fromRawAmount(1_500_000_000n, 9)).toBe("1.500000000");
+    expect(fromRawAmount(1n, 6)).toBe("0.000001");
+    expect(fromRawAmount(0n, 9)).toBe("0.000000000");
+  });
+
+  it("handles large values without float drift", () => {
+    expect(toRawAmount("999999999.999999999", 9)).toBe(999_999_999_999_999_999n);
+    expect(fromRawAmount(999_999_999_999_999_999n, 9)).toBe("999999999.999999999");
+  });
+
+  it("rejects malformed amounts", () => {
+    expect(() => toRawAmount("abc", 9)).toThrow();
+    expect(() => toRawAmount("", 9)).toThrow();
   });
 });

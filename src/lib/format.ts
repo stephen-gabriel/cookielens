@@ -1,3 +1,21 @@
+export function toRawAmount(amount: string | number | bigint, decimals: number): bigint {
+  const s = typeof amount === "bigint" ? amount.toString() : String(amount).trim();
+  if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(`Invalid amount "${s}"`);
+  const [intPart = "0", fracPart = ""] = s.split(".");
+  const frac = (fracPart || "").slice(0, decimals).padEnd(decimals, "0");
+  return BigInt(intPart) * BigInt(10 ** decimals) + BigInt(frac || "0");
+}
+
+export function fromRawAmount(raw: bigint, decimals: number): string {
+  const neg = raw < 0n;
+  const abs = neg ? -raw : raw;
+  const s = abs.toString().padStart(decimals + 1, "0");
+  const intPart = s.length > decimals ? s.slice(0, s.length - decimals) : "0";
+  const fracPart = s.length > decimals ? s.slice(s.length - decimals) : s.padStart(decimals, "0");
+  const out = `${intPart}.${fracPart}`;
+  return neg ? `-${out}` : out;
+}
+
 export function truncateAddress(address: string, chars = 4): string {
   if (!address) return "";
   if (address.length <= chars * 2 + 1) return address;

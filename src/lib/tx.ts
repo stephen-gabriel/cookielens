@@ -1,6 +1,6 @@
 "use client";
 
-import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction } from "@solana/web3.js";
 import type { UiWallet } from "@wallet-standard/ui";
 import { getWalletFeature } from "@wallet-standard/ui";
 
@@ -45,6 +45,47 @@ export async function prepareCookTransfer(
   tx.recentBlockhash = blockhash;
   tx.add(SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports }));
   return { txBytes: tx.serialize({ verifySignatures: false, requireAllSignatures: false }), blockhash, lastValidBlockHeight };
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/** Deserialize an unsigned v0 transaction returned by an aggregator, simulate it against the RPC,
+ * and prepare it for wallet signing. Throws with an actionable message if the simulation fails
+ * (insufficient funds, no route, stale blockhash). */
+export async function prepareAggregateSwapTransfer(
+  connection: Connection,
+  transactionBase64: string,
+): Promise<PreparedCookTransfer> {
+  const tx = VersionedTransaction.deserialize(base64ToBytes(transactionBase64));
+
+  const sim = await connection.simulateTransaction(tx, {
+    replaceRecentBlockhash: true,
+    sigVerify: false,
+    commitment: "confirmed",
+  });
+  if (sim.value.err) {
+    const logs = (sim.value.logs ?? []).join(" | ");
+    const blob = `${JSON.stringify(sim.value.err)} ${logs}`;
+    if (/insufficient|0x1\b/i.test(blob)) {
+      throw new Error("Swap simulation failed: insufficient balance. Add funds and retry.");
+    }
+    if (/BlockhashNotFound|blockhash/i.test(blob)) {
+      throw new Error("Swap failed to simulate: the route is stale. Re-quote and retry.");
+    }
+    const tail = logs.slice(-120);
+    throw new Error(`Swap failed to simulate${tail ? `: ${tail}` : ""}. Re-quote and retry.`);
+  }
+
+  return {
+    txBytes: tx.serialize(),
+    blockhash: tx.message.recentBlockhash,
+    lastValidBlockHeight: 0,
+  };
 }
 
 /** Ask the wallet to sign, then broadcast ourselves so we control confirmation timing. */
