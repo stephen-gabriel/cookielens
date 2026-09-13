@@ -1,4 +1,4 @@
-import { randomBytes, verify } from "node:crypto";
+import { createHash, randomBytes, verify } from "node:crypto";
 
 import bs58 from "bs58";
 import { PublicKey } from "@solana/web3.js";
@@ -28,13 +28,35 @@ export function verifySignedMessage(
   publicKey: string,
   signature: string,
 ): boolean {
-  try {
-    const pub = Buffer.from(new PublicKey(publicKey).toBytes());
-    const sig = bs58.decode(signature);
-    return verify(null, Buffer.from(message, "utf8"), pub, sig);
-  } catch {
-    return false;
+  const pub = Buffer.from(new PublicKey(publicKey).toBytes());
+  const sig = bs58.decode(signature);
+  const plain = Buffer.from(message, "utf8");
+  const candidates: Array<[string, Buffer]> = [
+    ["plain", plain],
+    ["sha256", Buffer.from(createHash("sha256").update(plain).digest())],
+  ];
+  for (const [name, data] of candidates) {
+    try {
+      if (verify(null, data, pub, sig)) return true;
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[auth] verify(${name}) errored: ${(err as Error).message}`);
+      }
+    }
   }
+  if (process.env.NODE_ENV === "development") {
+    const len = (() => {
+      try {
+        return sig.length;
+      } catch {
+        return -1;
+      }
+    })();
+    console.warn(
+      `[auth] signature verification failed — wallet=${publicKey} msgBytes=${plain.length} sigBase58Len=${signature.length} sigDecodedLen=${len} nonce=${message.slice(message.indexOf("Nonce: ") + 7)}`,
+    );
+  }
+  return false;
 }
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;

@@ -75,13 +75,21 @@ export async function signMessageForClaim(
     chain: SOLANA_CHAIN,
   });
   if (process.env.NODE_ENV === "development") {
-    const summary =
-      result instanceof Uint8Array
-        ? `bytes(${result.length})`
-        : Object.entries(result as object)
-            .map(([k, v]) => `${k}:${v instanceof Uint8Array ? `bytes(${v.length})` : Array.isArray(v) ? `array(${v.length})` : typeof v}`)
-            .join(", ");
-    console.warn("[signMessageForClaim] result:", summary);
+    const bytes = result instanceof Uint8Array ? result : null;
+    const arr = Array.isArray(result) ? result : null;
+    const first = arr?.[0];
+    console.warn(
+      "[signMessageForClaim] result=" +
+        JSON.stringify({
+          isArray: !!arr,
+          isBytes: !!bytes,
+          bytesLength: bytes ? bytes.length : null,
+          arrayLength: arr?.length,
+          firstType: typeof first,
+          firstIsBytes: first instanceof Uint8Array,
+          firstLen: first instanceof Uint8Array ? first.length : null,
+        }),
+    );
   }
   const signature = extractSignature(result);
   if (!signature) {
