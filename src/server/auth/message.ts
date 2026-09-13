@@ -36,29 +36,47 @@ export function verifySignedMessage(
   signature: string,
   signedMessageBase64?: string,
 ): boolean {
-  const pub = Buffer.from(new PublicKey(publicKey).toBytes());
+  const nonce = message.slice(message.indexOf("Nonce: ") + 7) || "";
   let sig: Uint8Array;
   try {
     sig = bs58.decode(signature);
   } catch {
     return false;
   }
+  const pub = Buffer.from(new PublicKey(publicKey).toBytes());
   const plain = Buffer.from(message, "utf8");
+
   if (tryVerify(pub, sig, plain)) return true;
-  if (!signedMessageBase64) return false;
 
-  let signed: Buffer;
-  try {
-    signed = Buffer.from(signedMessageBase64, "base64");
-  } catch {
-    return false;
+  const diag: Record<string, unknown> = {
+    sigLen: sig.length,
+    plainOk: true,
+    hasSigned: !!signedMessageBase64,
+  };
+  if (signedMessageBase64) {
+    let signed: Uint8Array | null = null;
+    try {
+      signed = Buffer.from(signedMessageBase64, "base64");
+    } catch {
+      diag.decodeError = true;
+    }
+    if (signed) {
+      const text = Buffer.from(signed).toString("utf8");
+      const signedOk = tryVerify(pub, sig, signed);
+      const hasNonce = nonce ? text.includes(nonce) : false;
+      const hasWallet = text.includes(publicKey);
+      diag.signedBytes = signed.length;
+      diag.signedOk = signedOk;
+      diag.hasNonce = hasNonce;
+      diag.hasWallet = hasWallet;
+      diag.signedTextSample = JSON.stringify(text.slice(0, 240));
+      if (signedOk && hasNonce && hasWallet) return true;
+    }
   }
-  if (!tryVerify(pub, sig, signed)) return false;
-
-  const nonce = message.slice(message.indexOf("Nonce: ") + 7) || "";
-  const text = signed.toString("utf8");
-  if (!nonce || !text.includes(nonce) || !text.includes(publicKey)) return false;
-  return true;
+  if (process.env.NODE_ENV === "development") {
+    console.warn("[auth] verify failed: " + JSON.stringify(diag));
+  }
+  return false;
 }
 
 function tryVerify(pub: Uint8Array, sig: Uint8Array, data: Uint8Array): boolean {
