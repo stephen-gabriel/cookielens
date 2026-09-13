@@ -72,7 +72,7 @@ export function verifySignedMessage(
     { name: "plain+chain", data: new TextEncoder().encode(`${message}${SIGNER_CHAIN}`) },
   ];
 
-  for (const { name, data } of candidates) {
+  for (const { data } of candidates) {
     if (ed25519Check(data, sig, pub)) {
       logVerified();
       return true;
