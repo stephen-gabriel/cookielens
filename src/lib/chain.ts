@@ -1,10 +1,17 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { RPC_URL } from "@/lib/constants";
 
+const RPC_TIMEOUT_MS = 15_000;
+
+/** Bounded fetch for the Solana Connection so a stalled RPC can never hang the UI forever. */
+function boundedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(RPC_TIMEOUT_MS) });
+}
+
 let connection: Connection | null = null;
 
 export function getConnection(): Connection {
-  if (!connection) connection = new Connection(RPC_URL, "confirmed");
+  if (!connection) connection = new Connection(RPC_URL, { commitment: "confirmed", fetch: boundedFetch });
   return connection;
 }
 

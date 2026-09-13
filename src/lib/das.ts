@@ -29,6 +29,7 @@ async function dasCall<T>(method: string, params: Record<string, unknown>): Prom
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params } satisfies DasRequest),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`DAS ${method} failed: ${res.status}`);
   const json = (await res.json()) as { result?: T; error?: { message?: string } };
