@@ -1,6 +1,7 @@
-import { randomBytes, verify } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import bs58 from "bs58";
+import nacl from "tweetnacl";
 import { PublicKey } from "@solana/web3.js";
 
 /**
@@ -23,12 +24,27 @@ export function deriveNonce(): string {
   return randomBytes(32).toString("hex");
 }
 
+const SIGNER_CHAIN = process.env.NEXT_PUBLIC_WALLET_STANDARD_CHAIN ?? "solana:mainnet";
+
 /**
- * Verify the Ed25519 signature. Some wallets (e.g. Nightly) sign a slightly
- * transformed copy of the message; when they report the exact bytes they
- * signed via `signedMessage`, we verify against those bytes and additionally
- * require the payload to contain the fresh nonce and claimed wallet so a
- * replay of an unrelated signature cannot pass.
+ * Verify the Ed25519 signature over `data`. Wallets occasionally emit the
+ * signature halves in the reverse order (S||R vs the canonical R||S), so both
+ * orders are tried.
+ */
+function ed25519Check(data: Uint8Array, sig: Uint8Array, pub: Uint8Array): boolean {
+  if (sig.length !== 64) return false;
+  if (nacl.sign.detached.verify(data, sig, pub)) return true;
+  const swapped = new Uint8Array([...sig.subarray(32), ...sig.subarray(0, 32)]);
+  return swapped.length === 64 && nacl.sign.detached.verify(data, swapped, pub);
+}
+
+/**
+ * Verify a claim signature. Primary path: reproduce the challenge message and
+ * verify (handles straight Ed25519). Nightly & friends may sign a slightly
+ * transformed copy; when the wallet reports the exact bytes it signed via
+ * `signedMessage`, we verify against those bytes too and require the payload
+ * to contain the fresh nonce and the claimed wallet so a replay of an
+ * unrelated signature cannot pass.
  */
 export function verifySignedMessage(
   message: string,
@@ -36,57 +52,66 @@ export function verifySignedMessage(
   signature: string,
   signedMessageBase64?: string,
 ): boolean {
-  const nonce = message.slice(message.indexOf("Nonce: ") + 7) || "";
   let sig: Uint8Array;
   try {
     sig = bs58.decode(signature);
   } catch {
     return false;
   }
-  const pub = Buffer.from(new PublicKey(publicKey).toBytes());
-  const plain = Buffer.from(message, "utf8");
+  let pub: Uint8Array;
+  try {
+    pub = new Uint8Array(new PublicKey(publicKey).toBytes());
+  } catch {
+    return false;
+  }
+  const plain = new TextEncoder().encode(message);
 
-  if (tryVerify(pub, sig, plain)) return true;
+  const candidates: Array<{ name: string; data: Uint8Array }> = [
+    { name: "plain", data: plain },
+    { name: "chain+plain", data: new TextEncoder().encode(`${SIGNER_CHAIN}${message}`) },
+    { name: "plain+chain", data: new TextEncoder().encode(`${message}${SIGNER_CHAIN}`) },
+  ];
 
-  const diag: Record<string, unknown> = {
-    sigLen: sig.length,
-    plainOk: true,
-    hasSigned: !!signedMessageBase64,
-  };
+  for (const { name, data } of candidates) {
+    if (ed25519Check(data, sig, pub)) {
+      logVerified();
+      return true;
+    }
+  }
+
   if (signedMessageBase64) {
     let signed: Uint8Array | null = null;
     try {
-      signed = Buffer.from(signedMessageBase64, "base64");
+      signed = new Uint8Array(Buffer.from(signedMessageBase64, "base64"));
     } catch {
-      diag.decodeError = true;
+      signed = null;
     }
+    const nonce = message.slice(message.indexOf("Nonce: ") + 7) || "";
     if (signed) {
-      const text = Buffer.from(signed).toString("utf8");
-      const signedOk = tryVerify(pub, sig, signed);
-      const hasNonce = nonce ? text.includes(nonce) : false;
-      const hasWallet = text.includes(publicKey);
-      diag.signedBytes = signed.length;
-      diag.signedOk = signedOk;
-      diag.hasNonce = hasNonce;
-      diag.hasWallet = hasWallet;
-      diag.signedTextSample = JSON.stringify(text.slice(0, 240));
-      if (signedOk && hasNonce && hasWallet) return true;
+      const ok = ed25519Check(signed, sig, pub);
+      const text = new TextDecoder().decode(signed);
+      const bound = nonce && text.includes(nonce) && text.includes(publicKey);
+      if (ok && bound) {
+        logVerified();
+        return true;
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          `[auth] signedMessage path: ok=${ok} bound=${!!bound} bytes=${signed.length} sample=${JSON.stringify(text.slice(0, 160))}`,
+        );
+      }
     }
   }
+
   if (process.env.NODE_ENV === "development") {
-    console.warn("[auth] verify failed: " + JSON.stringify(diag));
+    console.warn(`[auth] verify failed: sigLen=${sig.length} tried=${candidates.map((c) => c.name).join(",")}${signedMessageBase64 ? ",signedMessage" : ""}`);
   }
   return false;
 }
 
-function tryVerify(pub: Uint8Array, sig: Uint8Array, data: Uint8Array): boolean {
-  try {
-    return verify(null, data, Buffer.from(pub), sig) === true;
-  } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[auth] verify errored: ${(err as Error).message}`);
-    }
-    return false;
+function logVerified(): void {
+  if (process.env.NODE_ENV === "development") {
+    console.warn("[auth] signature verified");
   }
 }
 
