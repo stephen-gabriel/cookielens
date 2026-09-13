@@ -18,7 +18,11 @@
  */
 
 const path = require("path");
-require("process").loadEnvFile(path.join(__dirname, "..", ".env.local"));
+try {
+  require("process").loadEnvFile(path.join(__dirname, "..", ".env.local"));
+} catch {
+  // env vars already provided (e.g. Vercel) — loadEnvFile is a no-op.
+}
 const { neon } = require("@neondatabase/serverless");
 
 // ---- Config -----------------------------------------------------------------
@@ -487,6 +491,55 @@ async function countDistinct(mint, type) {
   return r?.n ?? 0;
 }
 
+/**
+ * One catch-up cycle bounded for serverless execution: at most `maxSlots`
+ * slots and hard-capped at `maxMs` milliseconds wall time. Returns counts.
+ */
+async function runBoundedCycle({ maxSlots = 200, maxMs = 45000 } = {}) {
+  const started = Date.now();
+  let startSlot = Number((await getState("start_slot", "0")) ?? "0");
+  const head = await rpc("getSlot", []);
+  if (startSlot <= 0) startSlot = head - 1;
+  const end = Math.min(head, startSlot + Math.min(BATCH, maxSlots));
+  if (end <= startSlot) {
+    await setState("last_head", String(head));
+    return { done: 0, actions: 0, events: 0, head, cancelled: false };
+  }
+
+  const slots = (await rpc("getBlocks", [startSlot + 1, end])) ?? [];
+  let queue = [...slots];
+  let next = 0;
+  let completed = 0;
+  let cancelled = false;
+  const allCycleActs = [];
+  const workers = Array.from({ length: CONCURRENCY }, async () => {
+    while (next < queue.length) {
+      if (Date.now() - started > maxMs) {
+        cancelled = true;
+        next = queue.length;
+        break;
+      }
+      const s = queue[next++];
+      try {
+        const acts = await processSlot(s);
+        allCycleActs.push(...acts);
+        completed++;
+      } catch (err) {
+        console.warn(`[indexer] slot ${s} failed: ${err.message}`);
+        completed++;
+      }
+    }
+  });
+  await Promise.all(workers);
+
+  const events = await writeEvents(allCycleActs);
+  const advancedTo = startSlot + (cancelled ? completed : slots.length);
+  await setState("start_slot", String(advancedTo));
+  await setState("last_run", new Date().toISOString());
+  await setState("last_head", String(head));
+  return { done: completed, actions: allCycleActs.length, events, head, cancelled };
+}
+
 async function main() {
   console.log(
     `[indexer] rpc=${RPC_URL} concurrency=${CONCURRENCY} batch=${BATCH} large_usd=${LARGE_USD} backfill=${BACKFILL_HOURS ?? "live"}`,
@@ -512,7 +565,20 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("[indexer] fatal:", err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("[indexer] fatal:", err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  rpc,
+  sql,
+  getState,
+  setState,
+  processSlot,
+  writeEvents,
+  runCycle,
+  runBoundedCycle,
+};
