@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import "@neondatabase/serverless"; // side-effect: trace this package into the serverless function so scripts/indexer.cjs can require() it at runtime
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
