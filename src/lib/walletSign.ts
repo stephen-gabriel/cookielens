@@ -9,20 +9,29 @@ const SOLANA_CHAIN = process.env.NEXT_PUBLIC_WALLET_STANDARD_CHAIN ?? "solana:ma
 
 type ReadonlyBytes = Omit<Uint8Array<ArrayBufferLike>, "copyWithin" | "fill" | "reverse" | "set" | "sort">;
 
+type SignMessageInput = {
+  message: Uint8Array;
+  /** Wallet-standard v1 requires the signing account (reads `input.account.address`). */
+  account?: { address: string; publicKey: Uint8Array<ArrayBufferLike> | ReadonlyBytes };
+  chain?: string;
+};
+
+type SignMessageOutput = {
+  signatures?: readonly Uint8Array[];
+  signature?: Uint8Array | string;
+  signedMessage?: Uint8Array;
+};
+
 type SignMessageFeature = {
   "solana:signMessage": {
-    signMessage: (input: {
-      message: Uint8Array;
-      /** Wallet-standard v1 requires the signing account (reads `input.account.address`). */
-      account?: { address: string; publicKey: Uint8Array<ArrayBufferLike> | ReadonlyBytes };
-      chain?: string;
-    }) => Promise<{ signatures: readonly Uint8Array[] }>;
+    signMessage: (input: SignMessageInput) => Promise<SignMessageOutput>;
   };
 };
 
 /**
  * Sign the exact UTF-8 bytes of a message with the wallet's
  * `solana:signMessage` feature and return the base58 signature.
+ * Wallets vary in the result shape (`signatures[0]` vs `signature`).
  */
 export async function signMessageForClaim(
   wallet: UiWallet,
@@ -33,12 +42,16 @@ export async function signMessageForClaim(
     throw new Error("Your wallet does not support message signing.");
   }
   const feature = getWalletFeature(wallet, SIGN_MESSAGE) as unknown as SignMessageFeature["solana:signMessage"];
-  const { signatures } = await feature.signMessage({
+  const result = await feature.signMessage({
     message: new TextEncoder().encode(message),
     account: { address: account.address, publicKey: account.publicKey },
     chain: SOLANA_CHAIN,
   });
-  const signature = signatures?.[0];
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[signMessageForClaim] keys:", Object.keys(result), "sigLens:", result.signatures?.length);
+  }
+  const raw = result.signatures?.[0] ?? result.signature;
+  const signature = raw instanceof Uint8Array ? bs58.encode(raw) : typeof raw === "string" ? raw : null;
   if (!signature) throw new Error("Wallet returned no signature.");
-  return bs58.encode(signature);
+  return signature;
 }
