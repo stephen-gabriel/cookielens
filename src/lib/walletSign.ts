@@ -31,26 +31,37 @@ type SignMessageFeature = {
 /**
  * Walk any result shape wallets actually return and find the first usable
  * signature: bare `Uint8Array`, `{ signature }`, `{ signatures: [...] }`, or
- * arrays/objects nesting these. Returns the base58 string when found.
+ * arrays/objects nesting these (Nightly returns `[{ ... }]`). Prefers known
+ * signature keys, then falls back to the first 64-byte blob (an ed25519 sig),
+ * while avoiding pubkeys/messages.
  */
-function extractSignature(raw: unknown, depth = 0): string | null {
-  if (depth > 4) return null;
-  if (raw instanceof Uint8Array) return raw.length > 0 ? bs58.encode(raw) : null;
-  if (typeof raw === "string") return raw.length > 0 ? raw : null;
+function signatureBytesOf(raw: unknown, depth = 0, visited = new Set<unknown>()): Uint8Array | null {
+  if (depth > 4 || raw === null || raw === undefined || visited.has(raw)) return null;
+  if (typeof raw !== "object") return null;
+  visited.add(raw);
+  if (raw instanceof Uint8Array) return raw.length > 0 ? raw : null;
+  if (raw instanceof ArrayBuffer) return raw.byteLength > 0 ? new Uint8Array(raw) : null;
+
+  const entries = raw instanceof Uint8Array ? [] : Object.entries(raw as Record<string, unknown>);
+  const known = ["signatures", "signature", "sig", "signatureBytes", "ed25519Signature"];
+  for (const key of known) {
+    const hit = raw instanceof Uint8Array ? null : raw[key as keyof typeof raw];
+    if (hit !== undefined) {
+      const sig = signatureBytesOf(hit, depth + 1, visited);
+      if (sig) return sig;
+    }
+  }
   if (Array.isArray(raw)) {
     for (const item of raw) {
-      const sig = extractSignature(item, depth + 1);
+      const sig = signatureBytesOf(item, depth + 1, visited);
       if (sig) return sig;
     }
     return null;
   }
-  if (raw && typeof raw === "object") {
-    const obj = raw as Record<string, unknown>;
-    for (const key of ["signatures", "signature", "sig", "signatureBytes"]) {
-      const sig = extractSignature(obj[key], depth + 1);
-      if (sig) return sig;
-    }
-    return null;
+  for (const [key, value] of entries) {
+    if (/publickey|account|address|message|signedmessage/i.test(key)) continue;
+    if (typeof value === "string") return new TextEncoder().encode(value);
+    if (value instanceof Uint8Array && value.length === 64) return value;
   }
   return null;
 }
@@ -78,22 +89,18 @@ export async function signMessageForClaim(
     const bytes = result instanceof Uint8Array ? result : null;
     const arr = Array.isArray(result) ? result : null;
     const first = arr?.[0];
-    console.warn(
-      "[signMessageForClaim] result=" +
-        JSON.stringify({
-          isArray: !!arr,
-          isBytes: !!bytes,
-          bytesLength: bytes ? bytes.length : null,
-          arrayLength: arr?.length,
-          firstType: typeof first,
-          firstIsBytes: first instanceof Uint8Array,
-          firstLen: first instanceof Uint8Array ? first.length : null,
-        }),
-    );
+    const firstSummary =
+      first && typeof first === "object"
+        ? Object.entries(first as Record<string, unknown>).reduce<Record<string, string>>((acc, [k, v]) => {
+            acc[k] = v instanceof Uint8Array ? `bytes(${v.length})` : Array.isArray(v) ? `array(${v.length})` : typeof v;
+            return acc;
+          }, {})
+        : null;
+    console.warn("[signMessageForClaim] result=" + JSON.stringify({ isArray: !!arr, isBytes: !!bytes, bytesLength: bytes?.length ?? null, arrayLength: arr?.length ?? null, first: firstSummary }));
   }
-  const signature = extractSignature(result);
+  const signature = signatureBytesOf(result);
   if (!signature) {
     throw new Error("Wallet returned no usable signature bytes (result was not bytes / signature(s) / string).");
   }
-  return signature;
+  return bs58.encode(signature);
 }
