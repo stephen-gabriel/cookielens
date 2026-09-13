@@ -67,15 +67,40 @@ function signatureBytesOf(raw: unknown, depth = 0, visited = new Set<unknown>())
 }
 
 /**
+ * Find the `signedMessage` bytes the wallet reports — the exact bytes its
+ * signature covers. Some wallets (e.g. Nightly) sign the message with a small
+ * transform, so we verify against what they say they signed.
+ */
+function signedMessageBytesOf(raw: unknown, depth = 0): Uint8Array | null {
+  if (!raw || typeof raw !== "object" || depth > 4) return null;
+  if (raw instanceof Uint8Array) return raw.length > 0 ? raw : null;
+  for (const key of Object.keys(raw as Record<string, unknown>)) {
+    const value = (raw as Record<string, unknown>)[key];
+    if (key.toLowerCase().includes("signedmessage") && value instanceof Uint8Array && value.length > 0) return value;
+    if (value && typeof value === "object") {
+      const hit = signedMessageBytesOf(value, depth + 1);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+/**
  * Sign the exact UTF-8 bytes of a message with the wallet's
- * `solana:signMessage` feature and return the base58 signature.
- * Wallets vary in the result shape; Nightly returns a bare `Uint8Array`.
+ * `solana:signMessage` feature. Returns the base58 signature plus the base64
+ * `signedMessage` the wallet reports (verify server-side against those bytes).
  */
 export async function signMessageForClaim(
   wallet: UiWallet,
   account: { address: string; publicKey: Uint8Array<ArrayBufferLike> | ReadonlyBytes },
   message: string,
-): Promise<string> {
+): Promise<{ signature: string; signedMessage?: string }> {
   if (!wallet.features.includes(SIGN_MESSAGE)) {
     throw new Error("Your wallet does not support message signing.");
   }
@@ -102,5 +127,9 @@ export async function signMessageForClaim(
   if (!signature) {
     throw new Error("Wallet returned no usable signature bytes (result was not bytes / signature(s) / string).");
   }
-  return bs58.encode(signature);
+  const signedMessageBytes = signedMessageBytesOf(result);
+  return {
+    signature: bs58.encode(signature),
+    signedMessage: signedMessageBytes ? bytesToBase64(signedMessageBytes) : undefined,
+  };
 }

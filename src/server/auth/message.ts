@@ -1,4 +1,4 @@
-import { createHash, randomBytes, verify } from "node:crypto";
+import { randomBytes, verify } from "node:crypto";
 
 import bs58 from "bs58";
 import { PublicKey } from "@solana/web3.js";
@@ -23,40 +23,53 @@ export function deriveNonce(): string {
   return randomBytes(32).toString("hex");
 }
 
+/**
+ * Verify the Ed25519 signature. Some wallets (e.g. Nightly) sign a slightly
+ * transformed copy of the message; when they report the exact bytes they
+ * signed via `signedMessage`, we verify against those bytes and additionally
+ * require the payload to contain the fresh nonce and claimed wallet so a
+ * replay of an unrelated signature cannot pass.
+ */
 export function verifySignedMessage(
   message: string,
   publicKey: string,
   signature: string,
+  signedMessageBase64?: string,
 ): boolean {
   const pub = Buffer.from(new PublicKey(publicKey).toBytes());
-  const sig = bs58.decode(signature);
+  let sig: Uint8Array;
+  try {
+    sig = bs58.decode(signature);
+  } catch {
+    return false;
+  }
   const plain = Buffer.from(message, "utf8");
-  const candidates: Array<[string, Buffer]> = [
-    ["plain", plain],
-    ["sha256", Buffer.from(createHash("sha256").update(plain).digest())],
-  ];
-  for (const [name, data] of candidates) {
-    try {
-      if (verify(null, data, pub, sig)) return true;
-    } catch (err) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[auth] verify(${name}) errored: ${(err as Error).message}`);
-      }
+  if (tryVerify(pub, sig, plain)) return true;
+  if (!signedMessageBase64) return false;
+
+  let signed: Buffer;
+  try {
+    signed = Buffer.from(signedMessageBase64, "base64");
+  } catch {
+    return false;
+  }
+  if (!tryVerify(pub, sig, signed)) return false;
+
+  const nonce = message.slice(message.indexOf("Nonce: ") + 7) || "";
+  const text = signed.toString("utf8");
+  if (!nonce || !text.includes(nonce) || !text.includes(publicKey)) return false;
+  return true;
+}
+
+function tryVerify(pub: Uint8Array, sig: Uint8Array, data: Uint8Array): boolean {
+  try {
+    return verify(null, data, Buffer.from(pub), sig) === true;
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[auth] verify errored: ${(err as Error).message}`);
     }
+    return false;
   }
-  if (process.env.NODE_ENV === "development") {
-    const len = (() => {
-      try {
-        return sig.length;
-      } catch {
-        return -1;
-      }
-    })();
-    console.warn(
-      `[auth] signature verification failed — wallet=${publicKey} msgBytes=${plain.length} sigBase58Len=${signature.length} sigDecodedLen=${len} nonce=${message.slice(message.indexOf("Nonce: ") + 7)}`,
-    );
-  }
-  return false;
 }
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;

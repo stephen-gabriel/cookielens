@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   const nonce = str(body?.nonce);
   const signature = str(body?.signature);
   const username = str(body?.username);
+  const signedMessage = str(body?.signedMessage);
 
   if (!wallet || !isValidAddress(wallet)) return jsonError("A valid wallet address is required.", 400);
   if (!nonce) return jsonError("Nonce is required.", 400);
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (challenge.expiresAt < new Date()) return jsonError("Challenge expired. Request a new one.", 401);
 
   const message = challengeMessage(wallet, nonce);
-  if (!verifySignedMessage(message, wallet, signature)) {
+  if (!verifySignedMessage(message, wallet, signature, signedMessage)) {
     return jsonError("Signature verification failed.", 401);
   }
 
