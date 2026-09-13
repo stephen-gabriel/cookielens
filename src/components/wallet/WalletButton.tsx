@@ -85,17 +85,19 @@ export function WalletButton() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-12 z-20 w-72 rounded-lg border border-border bg-surface p-4 shadow-xl">
-            <p className="text-sm text-text-primary">
-              No wallet found. Install{" "}
+            <p className="text-sm text-text-primary">No wallet found.</p>
+            <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+              On mobile, open this site inside the <span className="font-semibold text-text-primary">Nightly app browser</span>{" "}
+              (Nightly → Browser → cookielens.vercel.app) to connect your wallet. Or use the{" "}
               <a
                 href="https://nightly.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary underline"
               >
-                Nightly
+                Nightly web extension
               </a>{" "}
-              to track your on-chain portfolio on Cookie Chain.
+              on desktop.
             </p>
           </div>
         </>

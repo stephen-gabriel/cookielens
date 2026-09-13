@@ -9,6 +9,13 @@ import { useWallets } from "@wallet-standard/react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { switchNightlyNetwork } from "@/lib/nightly";
 
+const CONNECT_TIMEOUT_MS = 60_000;
+
+function isMobileUA(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+}
+
 export interface WalletContextValue {
   wallets: readonly UiWallet[];
   connectedWallet: UiWallet | null;
@@ -32,7 +39,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (connecting || connectedWallet) return;
       setConnecting(true);
       try {
-        if (wallet.name.toLowerCase().includes("nightly")) {
+        if (wallet.name.toLowerCase().includes("nightly") && !isMobileUA()) {
           try {
             await switchNightlyNetwork();
           } catch {
@@ -40,10 +47,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           }
         }
         const feature = getWalletFeature(wallet, StandardConnect) as StandardConnectFeature[typeof StandardConnect];
-        const { accounts } = await feature.connect({ silent: false });
-        setAccount(accounts[0] ?? null);
-        setConnectedWallet(wallet);
-        setManuallyDisconnected(false);
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new Error("No approval received from Nightly. Keep this tab open, confirm the approve dialog, and try again."));
+          }, CONNECT_TIMEOUT_MS);
+        });
+        try {
+          const { accounts } = await Promise.race([feature.connect({ silent: false }), timeout]);
+          setAccount(accounts[0] ?? null);
+          setConnectedWallet(wallet);
+          setManuallyDisconnected(false);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
       } finally {
         setConnecting(false);
       }
