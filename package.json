@@ -12,9 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:check": "node scripts/check-db.cjs",
-    "indexer": "node scripts/indexer.cjs",
-    "indexer:once": "node scripts/indexer.cjs --once",
-    "indexer:backfill": "node scripts/indexer.cjs --backfill"
+    "indexer": "tsx scripts/indexer.mts",
+    "indexer:once": "tsx scripts/indexer.mts --once",
+    "indexer:backfill": "tsx scripts/indexer.mts --backfill"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -41,6 +41,7 @@
     "eslint-config-next": "16.3.4",
     "postcss": "^8.4.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

@@ -1,30 +1,11 @@
-import path from "node:path";
+import { createIndexer } from "../../../../server/indexer/engine";
 
-import "@neondatabase/serverless"; // side-effect: trace this package into the serverless function so scripts/indexer.cjs can require() it at runtime
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// No bundling: the worker is a plain .cjs loaded at runtime (it loads
-// .env.local itself). Turbopack must not statically analyze this require.
-/* eslint-disable-next-line no-eval */
-const runtimeRequire = eval("require") as NodeRequire;
-const WORKER_PATH = path.resolve(process.cwd(), "scripts", "indexer.cjs");
-
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
-type WorkerModule = {
-  runBoundedCycle: (opts?: { maxSlots?: number; maxMs?: number }) => Promise<{
-    done: number;
-    actions: number;
-    events: number;
-    head: number;
-    cancelled: boolean;
-  }>;
-};
-
-export const GET = handle;
-export const POST = handle;
+const indexer = createIndexer(process.env);
 
 function authorized(req: NextRequest): { ok: boolean; reason?: string } {
   const secret = process.env.CRON_SECRET || process.env.INDEXER_RUN_SECRET;
@@ -41,6 +22,9 @@ function authorized(req: NextRequest): { ok: boolean; reason?: string } {
   return { ok: false, reason: "Unauthorized." };
 }
 
+export const GET = handle;
+export const POST = handle;
+
 async function handle(req: NextRequest) {
   const auth = authorized(req);
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.reason }, { status: 401 });
@@ -50,8 +34,7 @@ async function handle(req: NextRequest) {
   const maxMs = Math.max(5000, Math.min(50000, Number(params.get("maxMs")) || 9000));
 
   try {
-    const worker = runtimeRequire(WORKER_PATH) as WorkerModule;
-    const result = await worker.runBoundedCycle({ maxSlots, maxMs });
+    const result = await indexer.runBoundedCycle({ maxSlots, maxMs });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return NextResponse.json(
