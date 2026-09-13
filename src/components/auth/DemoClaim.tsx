@@ -4,7 +4,7 @@ import { Loader2, LogOut, Sparkles } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { demoAddress, signChallengeMessage } from "@/lib/demo";
+import { clearDemoKeypair, demoAddress, signChallengeMessage } from "@/lib/demo";
 
 export function DemoClaim({ compact }: { compact?: boolean }) {
   const { me, refresh, logout } = useAuth();
@@ -14,21 +14,33 @@ export function DemoClaim({ compact }: { compact?: boolean }) {
   if (me) {
     return (
       <div className={`rounded-lg border border-dashed border-primary/40 bg-surface ${compact ? "p-3" : "p-4"}`}>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <Sparkles className="h-4 w-4 shrink-0 text-primary" />
             <span className="truncate font-semibold">@{me.username}</span>
             <span className="shrink-0 text-xs text-text-secondary">demo mode</span>
           </div>
-          <button
-            onClick={async () => {
-              await logout();
-              toast.success("Signed out.");
-            }}
-            className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-text-secondary transition hover:border-error/50 hover:text-error"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={async () => {
+                clearDemoKeypair();
+                await logout();
+                toast.success("Demo identity reset.");
+              }}
+              className="cursor-pointer text-xs text-text-secondary underline transition hover:text-primary"
+            >
+              Reset identity
+            </button>
+            <button
+              onClick={async () => {
+                await logout();
+                toast.success("Signed out.");
+              }}
+              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-text-secondary transition hover:border-error/50 hover:text-error"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </button>
+          </div>
         </div>
       </div>
     );

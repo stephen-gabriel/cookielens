@@ -8,7 +8,6 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DemoClaim } from "@/components/auth/DemoClaim";
-import { clearDemoKeypair } from "@/lib/demo";
 
 export function WalletButton() {
   const { wallets, connectedWallet, account, connecting, connect, disconnect } = useWallet();
@@ -36,7 +35,6 @@ export function WalletButton() {
             try {
               if (connectedWallet) await disconnect();
               await logout();
-              clearDemoKeypair();
               toast.success("Signed out.");
             } catch {
               toast.error("Sign out failed.");
