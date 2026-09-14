@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useWallet } from "@/lib/providers";
 
 export type Me = {
   wallet: string;
@@ -28,8 +29,10 @@ async function fetchMe(): Promise<Me> {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { account } = useWallet();
   const [me, setMe] = useState<Me>(null);
   const [loading, setLoading] = useState(true);
+  const lastWallet = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +45,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, []);
+
+  // Restore the session for a previously claimed wallet. The username is
+  // permanently bound to the address in `users`, so reconnecting (even after a
+  // sign-out) should log the user straight back in without re-claiming a name.
+  useEffect(() => {
+    if (loading) return;
+    const addr = account?.address ?? null;
+    if (!addr) {
+      lastWallet.current = null;
+      return;
+    }
+    if (lastWallet.current === addr) return;
+    lastWallet.current = addr;
+    if (me?.wallet === addr) return;
+
+    let cancelled = false;
+    fetch("/api/auth/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wallet: addr }),
+    })
+      .then((res) => (res.ok ? res.json() : { me: null }))
+      .then((data) => {
+        if (cancelled) return;
+        if (data.me) setMe(data.me);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [account?.address, me, loading]);
 
   const refresh = useCallback(async () => {
     const m = await fetchMe();
