@@ -31,23 +31,36 @@ export async function getNativeBalance(address: string): Promise<bigint> {
 
 export async function getTokenBalances(address: string): Promise<WalletTokenBalance[]> {
   const pubkey = new PublicKey(address);
-  const { value } = await getConnection().getTokenAccountsByOwner(pubkey, {
-    programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-  });
 
-  return value
+  const [splAccounts, token2022Accounts] = await Promise.all([
+    getConnection()
+      .getParsedTokenAccountsByOwner(pubkey, {
+        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+      })
+      .catch(() => ({ value: [] })),
+    getConnection()
+      .getParsedTokenAccountsByOwner(pubkey, {
+        programId: new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"),
+      })
+      .catch(() => ({ value: [] })),
+  ]);
+
+  const allAccounts = [...splAccounts.value, ...token2022Accounts.value];
+
+  return allAccounts
     .map(({ account }) => {
-      const info =
-        typeof account.data === "string"
-          ? (JSON.parse(account.data).parsed?.info ?? null)
-          : (account.data as { parsed?: { info?: unknown } }).parsed?.info ?? null;
-      const anyInfo = info as { mint?: string; tokenAmount?: { amount: string; decimals: number }; isNative?: boolean } | null;
-      if (!anyInfo?.mint || !anyInfo?.tokenAmount) return null;
+      const parsedInfo = (account.data as { parsed?: { info?: unknown } })?.parsed?.info as {
+        mint?: string;
+        tokenAmount?: { amount: string; decimals: number };
+        isNative?: boolean;
+      } | undefined;
+
+      if (!parsedInfo?.mint || !parsedInfo?.tokenAmount) return null;
       return {
-        mint: anyInfo.mint,
-        amount: BigInt(anyInfo.tokenAmount.amount),
-        decimals: anyInfo.tokenAmount.decimals,
-        isNative: anyInfo.isNative === true,
+        mint: parsedInfo.mint,
+        amount: BigInt(parsedInfo.tokenAmount.amount),
+        decimals: parsedInfo.tokenAmount.decimals,
+        isNative: parsedInfo.isNative === true,
       };
     })
     .filter((x): x is WalletTokenBalance => x !== null && x.amount > 0n);

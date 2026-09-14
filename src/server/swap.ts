@@ -52,9 +52,22 @@ async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs = HTTP_TI
       throw err;
     }
     if (!res.ok) {
-      const err = new Error(`aggregator ${res.status}: ${(await res.text()).slice(0, 200)}`) as Error & {
-        status: number;
-      };
+      const rawText = await res.text();
+      let message = rawText;
+      try {
+        const json = JSON.parse(rawText);
+        if (json && typeof json.error === "string") {
+          message = json.error;
+        }
+      } catch {}
+
+      if (/InstructionError|Custom.*1|0x1|insufficient|balance/i.test(message)) {
+        message = "Insufficient balance for this swap. Lower the amount and retry.";
+      } else if (message.length > 150) {
+        message = message.slice(0, 150) + "…";
+      }
+
+      const err = new Error(message) as Error & { status: number };
       err.status = res.status;
       throw err;
     }

@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("swap build failed", err);
-    if (err instanceof Error && /aggregator/.test(err.message)) {
-      return jsonError(`Swap service unavailable. ${err.message}`, 502);
+    if (err instanceof Error) {
+      return jsonError(err.message, 400);
     }
     return jsonError("Failed to build swap transaction.", 500);
   }

@@ -58,53 +58,60 @@ CookieLens is the portfolio aggregation, social discovery, and market exploratio
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Configure Environment Variables
+
 Copy `.env.example` to `.env.local`:
+
 ```bash
 cp .env.example .env.local
 ```
 
 Ensure the following variables are configured:
-* `NEXT_PUBLIC_RPC_URL`: `https://rpc.cookiescan.io`
-* `NEXT_PUBLIC_DAS_URL`: `https://api.cookiescan.io`
-* `DATABASE_URL`: Your Neon PostgreSQL connection string
-* `CRON_SECRET`: Secret token for indexer cron authorization
+
+- `NEXT_PUBLIC_RPC_URL`: `https://rpc.cookiescan.io`
+- `NEXT_PUBLIC_DAS_URL`: `https://api.cookiescan.io`
+- `DATABASE_URL`: Your Neon PostgreSQL connection string
+- `CRON_SECRET`: Secret token for indexer cron authorization
 
 ### 3. Run Database Migrations
+
 ```bash
 npm run db:push
 ```
 
 ### 4. Start Development Server
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) to view CookieLens in your browser.
 
 ---
 
 ## 🧪 Testing & Verification
 
-| Command | Purpose |
-|---------|---------|
-| `npm test` | Run Vitest unit test suite (tx parsing, formatters, swap params, significance engine, feed events) |
-| `npm run typecheck` | Execute TypeScript strict typecheck (`tsc --noEmit`) |
-| `npm run lint` | Run ESLint check |
-| `npm run build` | Perform Next.js production build |
+| Command             | Purpose                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm test`          | Run Vitest unit test suite (tx parsing, formatters, swap params, significance engine, feed events) |
+| `npm run typecheck` | Execute TypeScript strict typecheck (`tsc --noEmit`)                                               |
+| `npm run lint`      | Run ESLint check                                                                                   |
+| `npm run build`     | Perform Next.js production build                                                                   |
 
 ---
 
 ## 📖 Documentation
 
-* [Product Requirements Document (PRD)](./PRD.md)
-* [Functional Requirements Document (FRD)](./FRD.md)
-* [Architecture Document](./ARCHITECTURE.md)
-* [Design System Guide](./docs/COOKIE_LENS_DESIGN_SYSTEM.md)
-* [Project Specification Guide](./docs/COOKIE_LENS_STEVEN_GUIDE.md)
+- [Product Requirements Document (PRD)](./PRD.md)
+- [Functional Requirements Document (FRD)](./FRD.md)
+- [Architecture Document](./ARCHITECTURE.md)
+- [Design System Guide](./docs/COOKIE_LENS_DESIGN_SYSTEM.md)
+- [Project Specification Guide](./docs/COOKIE_LENS_STEVEN_GUIDE.md)
 
 ---
 
