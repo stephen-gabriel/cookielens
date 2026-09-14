@@ -1,6 +1,6 @@
 # CookieLens
 
-Analytics + portfolio tracker for **Cookie Chain**. See native COOK and every token holding for any wallet — priced in USD, ranked across the chain — plus live network stats, one-click **Send COOK** transfers, and **swap** between COOK and any token via the Cookiebox aggregator.
+CookieLens is the portfolio aggregation, social discovery, and market exploration platform for **Cookie Chain**. It transforms raw on-chain activity into structured, actionable social signals — enabling users to track wallet portfolios, follow active traders, discover emerging tokens, send native COOK, and swap COOK ↔ any token with real-time on-chain confirmation.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
@@ -17,48 +17,97 @@ Analytics + portfolio tracker for **Cookie Chain**. See native COOK and every to
 [![Cookie Chain](https://img.shields.io/badge/Cookie-9600FF?logo=solana)](https://www.cookiechain.wtf/)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 
-## Why
+---
 
-Cookie Chain has explorers, DEXs, a launchpad, and a bridge — but no portfolio-aggregation layer. CookieLens is that layer: connect a wallet (Nightly or any wallet-standard wallet), paste any address to watch it, browse every token on the chain, send COOK, and swap between COOK and any token with live status feedback.
+## 🌟 Key Features
 
-## Features
+- **Portfolio Tracker**: Connected wallet view for native COOK + all SPL token holdings with USD valuation.
+- **Send COOK**: Direct native COOK token transfers on Cookie Chain with real-time status feedback (Sign → Broadcast → Confirm) and direct CookieScan explorer links.
+- **Swap Aggregator**: Integrated Cookiebox swap engine (COOK ↔ any token) with simulation guard, slippage controls, and price impact estimation.
+- **Social Discover & Following Feed**: Classified on-chain events (Significant Entries, Community Convergence, Early Token Activity, Large Movements, Token Momentum, and Network Activity).
+- **Wallet Directory & Profiles**: Claim username with Ed25519 wallet challenge signatures (or test via Demo Mode), follow wallets, and watch tokens.
+- **Token Explorer & Detail Pages**: Per-token price, market cap, supply, holder metrics, community context, and activity history.
+- **Address Tracker**: Track any Cookie Chain address without connecting a wallet.
+- **Automated Indexer**: Cron-driven background worker (GitHub Actions + Next.js API) that indexes slots, parses activities, and writes classified social events to Neon Postgres.
 
-- **Overview** — live COOK price (CoinGecko), market cap, and current chain height
-- **Portfolio** — connected wallet's COOK + token balances with USD valuation
-- **Send COOK** — transfer native COOK on-chain with real-time status (sign → broadcast → confirm) and a CookieScan link
-- **Swap** — trade COOK ↔ any token through the Cookiebox aggregator (quote → simulate → sign → submit → confirm) with slippage and price-impact controls
-- **Watch** — track any Cookie Chain address (no connection required)
-- **Tokens** — every fungible token on the chain, ranked by holders, COOK pinned
-- **Token detail** — per-token metadata, price, market cap, and supply
+---
 
-## Getting Started
+## 🏗️ Architecture Overview
 
-1. Install dependencies: `npm install`
-2. Copy `.env.example` to `.env.local` (all variables are public; `public/` values are prefixed `NEXT_PUBLIC_`)
-3. Run the dev server: `npm run dev`
-4. Open [http://localhost:3000](http://localhost:3000)
+```
+                      COOKIE CHAIN RPC & DAS
+                           │           │
+                           ▼           ▼
+                     CookieLens Background Indexer
+                     (GitHub Actions cron worker)
+                                  │
+                                  ▼
+                            Neon Postgres
+                       (Drizzle ORM Schema)
+                                  │
+                                  ▼
+                         CookieLens Next.js API
+                                  │
+                                  ▼
+                         React / Tailwind UI
+              (Wallet-Standard + Ed25519 Verification)
+```
 
-## Scripts
+---
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | Run TypeScript type checking |
+## 🚀 Quick Start
 
-## Data Sources
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-| Source | Used For |
-|--------|----------|
-| Cookie Chain RPC (`rpc.cookiescan.io`) | Native balances, token accounts, tx history |
-| CookieScan DAS API (`api.cookiescan.io`) | Token metadata + asset discovery |
-| CoinGecko (`cookie-2`) | COOK/USD price and market cap |
-| Cookiebox aggregator (`agg.cookiebox.app`) | Swap quotes + unsigned swap transactions |
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
 
-> COOK is native on Cookie Chain (mint `So11111111111111111111111111111111111111112`, 9 decimals), distinct from the bridged SPL variant that appears in DAS metadata. Swaps always route the native mint.
+Ensure the following variables are configured:
+* `NEXT_PUBLIC_RPC_URL`: `https://rpc.cookiescan.io`
+* `NEXT_PUBLIC_DAS_URL`: `https://api.cookiescan.io`
+* `DATABASE_URL`: Your Neon PostgreSQL connection string
+* `CRON_SECRET`: Secret token for indexer cron authorization
 
-## Documentation
+### 3. Run Database Migrations
+```bash
+npm run db:push
+```
 
-See [PRD.md](./PRD.md), [FRD.md](./FRD.md), and [ARCHITECTURE.md](./ARCHITECTURE.md) for full documentation.
+### 4. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to view CookieLens in your browser.
+
+---
+
+## 🧪 Testing & Verification
+
+| Command | Purpose |
+|---------|---------|
+| `npm test` | Run Vitest unit test suite (tx parsing, formatters, swap params, significance engine, feed events) |
+| `npm run typecheck` | Execute TypeScript strict typecheck (`tsc --noEmit`) |
+| `npm run lint` | Run ESLint check |
+| `npm run build` | Perform Next.js production build |
+
+---
+
+## 📖 Documentation
+
+* [Product Requirements Document (PRD)](./PRD.md)
+* [Functional Requirements Document (FRD)](./FRD.md)
+* [Architecture Document](./ARCHITECTURE.md)
+* [Design System Guide](./docs/COOKIE_LENS_DESIGN_SYSTEM.md)
+* [Project Specification Guide](./docs/COOKIE_LENS_STEVEN_GUIDE.md)
+
+---
+
+## 📜 License
+
+MIT License. Built for Cookie Chain ecosystem.
