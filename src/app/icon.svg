@@ -1,12 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="26" fill="#12121a"/>
-  <rect x="3" y="3" width="122" height="122" rx="23" fill="none" stroke="#23232f" stroke-width="6"/>
-  <circle cx="62" cy="70" r="40" fill="#1a1a24" stroke="#00ff88" stroke-width="5"/>
-  <circle cx="48" cy="58" r="4.5" fill="#00ff88"/>
-  <circle cx="76" cy="50" r="4.5" fill="#00ff88"/>
-  <circle cx="80" cy="78" r="4.5" fill="#00ff88"/>
-  <circle cx="48" cy="84" r="4.5" fill="#00ff88"/>
-  <circle cx="66" cy="70" r="4.5" fill="#ff6b35"/>
-  <circle cx="84" cy="30" r="15" fill="none" stroke="#e0e0e0" stroke-width="5"/>
-  <line x1="95" y1="43" x2="109" y2="57" stroke="#e0e0e0" stroke-width="5" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0d0d1a"/>
+    </linearGradient>
+    <linearGradient id="cookie" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4943a"/>
+      <stop offset="100%" stop-color="#a06820"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ffaa"/>
+      <stop offset="100%" stop-color="#00cc88"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect x="2" y="2" width="124" height="124" rx="26" fill="none" stroke="#2a1f3d" stroke-width="2"/>
+
+  <!-- Cookie body -->
+  <circle cx="56" cy="68" r="34" fill="url(#cookie)" filter="url(#shadow)"/>
+  <circle cx="56" cy="68" r="34" fill="none" stroke="#c4843a" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Cookie chips (chocolate) -->
+  <circle cx="44" cy="56" r="5" fill="#4a2810" opacity="0.85"/>
+  <circle cx="64" cy="52" r="4" fill="#4a2810" opacity="0.85"/>
+  <circle cx="70" cy="72" r="5" fill="#4a2810" opacity="0.85"/>
+  <circle cx="46" cy="80" r="4.5" fill="#4a2810" opacity="0.85"/>
+  <circle cx="58" cy="68" r="3.5" fill="#4a2810" opacity="0.7"/>
+
+  <!-- Cookie crumble texture -->
+  <circle cx="50" cy="62" r="2" fill="#c8884a" opacity="0.4"/>
+  <circle cx="62" cy="78" r="2.5" fill="#c8884a" opacity="0.3"/>
+  <circle cx="40" cy="72" r="1.5" fill="#c8884a" opacity="0.35"/>
+
+  <!-- Magnifying glass lens circle with glow -->
+  <circle cx="88" cy="36" r="18" fill="none" stroke="url(#lens)" stroke-width="4" filter="url(#glow)" opacity="0.9"/>
+  <circle cx="88" cy="36" r="14" fill="#00ffaa" opacity="0.08"/>
+
+  <!-- Magnifying glass handle -->
+  <line x1="100" y1="50" x2="114" y2="64" stroke="url(#lens)" stroke-width="5" stroke-linecap="round" filter="url(#glow)" opacity="0.9"/>
+
+  <!-- Lens reflection highlight -->
+  <ellipse cx="83" cy="30" rx="6" ry="4" fill="#fff" opacity="0.15" transform="rotate(-25 83 30)"/>
 </svg>
