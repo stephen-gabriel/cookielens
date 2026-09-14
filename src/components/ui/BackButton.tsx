@@ -8,17 +8,16 @@ import { useCallback } from "react";
  * One-level back affordance: pops the SPA history when there is one,
  * otherwise returns to the home feed.
  */
-export function BackButton() {
+export function BackButton({ fallback = "/" }: { fallback?: string }) {
   const router = useRouter();
 
   const goBack = useCallback(() => {
-    const idx = (window.history.state as { idx?: number } | null)?.idx ?? -1;
-    if (idx > 0) {
+    if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
     } else {
-      router.replace("/");
+      router.push(fallback);
     }
-  }, [router]);
+  }, [router, fallback]);
 
   return (
     <button
