@@ -24,44 +24,82 @@ type SignInput = {
   chain: string;
 };
 
-type SignedBytes = Transaction | Uint8Array;
+type SignedBytes = Transaction | VersionedTransaction | Uint8Array | { serialize(): Uint8Array };
+
+function isSignedBytes(value: unknown): value is SignedBytes {
+  if (!value || typeof value !== "object") return false;
+  if (value instanceof Uint8Array || value instanceof Transaction || value instanceof VersionedTransaction) {
+    return true;
+  }
+  if ("serialize" in value && typeof (value as { serialize: unknown }).serialize === "function") {
+    return true;
+  }
+  return false;
+}
 
 /** Extract a signed transaction from both v0 (`{ signedTransaction }` /
  * `{ signedTransactions: bytes[] }`) and v1 (array of
- * `{ signedTransaction }`) output shapes. */
-function extractSignedTransaction(value: unknown): SignedBytes | undefined {
+ * `{ signedTransaction }`) output shapes, bare Uint8Arrays, or Transaction objects. */
+export function extractSignedTransaction(value: unknown): SignedBytes | undefined {
+  if (isSignedBytes(value)) {
+    return value;
+  }
   if (Array.isArray(value)) {
     if (value.length === 0) return undefined;
-    const first = value[0];
-    if (first && typeof first === "object" && "signedTransaction" in (first as object)) {
-      return extractSignedTransaction((first as { signedTransaction: SignedBytes }).signedTransaction);
+    for (const item of value) {
+      const extracted = extractSignedTransaction(item);
+      if (extracted) return extracted;
     }
-    return extractSignedTransaction(first);
+    return undefined;
   }
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    if (obj.signedTransaction != null) return obj.signedTransaction as SignedBytes;
-    if (Array.isArray(obj.signedTransactions)) return extractSignedTransaction(obj.signedTransactions);
+    if (obj.signedTransaction != null) {
+      const hit = extractSignedTransaction(obj.signedTransaction);
+      if (hit) return hit;
+    }
+    if (obj.signedTransactions != null) {
+      const hit = extractSignedTransaction(obj.signedTransactions);
+      if (hit) return hit;
+    }
   }
   return undefined;
 }
 
-/** Extract a signature from both v0 (`{ signature }`) and v1 (array of
- * `{ signature }`) output shapes. */
-function extractSignature(value: unknown): Uint8Array | string | undefined {
+/** Extract a signature from both v0 (`{ signature }`), v1 (array of
+ * `{ signature }`), or bare strings/Uint8Arrays. */
+export function extractSignature(value: unknown): Uint8Array | string | undefined {
+  if (typeof value === "string" || value instanceof Uint8Array) {
+    return value;
+  }
   if (Array.isArray(value)) {
     if (value.length === 0) return undefined;
-    return extractSignature(value[0]);
+    for (const item of value) {
+      const extracted = extractSignature(item);
+      if (extracted) return extracted;
+    }
+    return undefined;
   }
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    if (obj.signature != null) return obj.signature as Uint8Array | string;
+    if (obj.signature != null) {
+      const hit = extractSignature(obj.signature);
+      if (hit) return hit;
+    }
+    if (obj.signatures != null) {
+      const hit = extractSignature(obj.signatures);
+      if (hit) return hit;
+    }
   }
   return undefined;
 }
 
-function toBytes(value: SignedBytes): Uint8Array {
-  return value instanceof Transaction ? value.serialize() : new Uint8Array(value);
+export function toBytes(value: SignedBytes): Uint8Array {
+  if (value instanceof Uint8Array) return value;
+  if ("serialize" in value && typeof value.serialize === "function") {
+    return value.serialize();
+  }
+  return new Uint8Array(value as unknown as ArrayLike<number>);
 }
 
 function pickFeature(wallet: UiWallet, names: readonly FeatureName[]): FeatureName | null {
