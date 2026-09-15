@@ -17,7 +17,7 @@ export function LeftNav() {
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <nav className="sticky top-14 flex flex-col gap-1 py-4" aria-label="Main">
+    <nav className="flex flex-col gap-1 py-4" aria-label="Main">
       {navItems.map((item) => {
         const isActive = active(item.href);
         return (

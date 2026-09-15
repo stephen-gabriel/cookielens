@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <Header />
             <div className="mx-auto flex w-full max-w-6xl items-start">
-              <aside className="sticky top-14 hidden w-56 shrink-0 self-start md:block">
+              <aside className="sticky top-14 hidden w-56 shrink-0 self-start px-3 md:block">
                 <LeftNav />
                 <p className="px-3 text-xs leading-relaxed text-text-secondary">
                   Social discovery for Cookie Chain activity.
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <main className="min-h-screen min-w-0 flex-1 border-x border-border px-4 pb-24 pt-4 md:pb-10">
                 {children}
               </main>
-              <aside className="sticky top-14 hidden w-72 shrink-0 self-start lg:block">
+              <aside className="sticky top-14 hidden w-72 shrink-0 self-start px-3 lg:block">
                 <RightRail />
               </aside>
             </div>
