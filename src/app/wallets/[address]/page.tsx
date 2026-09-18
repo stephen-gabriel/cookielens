@@ -187,9 +187,11 @@ export default function WalletProfilePage() {
         href={`${EXPLORER_URL}/address/${wallet.address}`}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1 text-sm text-primary underline"
+        className="block w-full rounded-xl border border-border bg-surface p-4 text-center text-sm font-medium text-text-primary no-underline transition hover:border-primary hover:bg-primary hover:text-background hover:no-underline"
       >
-        Verify on CookieScan <ExternalLink className="h-3.5 w-3.5" />
+        <span className="inline-flex items-center justify-center gap-1.5 font-medium no-underline">
+          Verify on CookieScan <ExternalLink className="h-3.5 w-3.5" />
+        </span>
       </a>
 
       <section>

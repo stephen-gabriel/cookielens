@@ -67,7 +67,22 @@ export function SendCookPanel({
 
       setStage("done");
       setMessage(null);
-      toast.success("COOK sent and confirmed!", { id: txToastId });
+      toast.success(
+        () => (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-text-primary">COOK sent and confirmed!</span>
+            <a
+              href={`${EXPLORER_URL}/tx/${signature}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-mono text-xs text-text-secondary hover:text-primary transition no-underline"
+            >
+              Tx: {signature.slice(0, 20)}… <ArrowUpRight className="h-3 w-3" />
+            </a>
+          </div>
+        ),
+        { id: txToastId, duration: 6000 }
+      );
       toastId.current = null;
       onSent();
     } catch (err) {
@@ -147,31 +162,7 @@ export function SendCookPanel({
             </div>
           )}
 
-          {stage === "done" && lastSignature && (
-            <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-text-primary">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span className="font-medium">COOK sent and confirmed</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <a
-                  href={`${EXPLORER_URL}/tx/${lastSignature}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-xs break-all text-primary underline"
-                >
-                  {lastSignature.slice(0, 24)}… <ArrowUpRight className="h-3 w-3" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => navigator.clipboard.writeText(lastSignature)}
-                  className="inline-flex items-center gap-1 text-xs text-text-secondary transition hover:text-primary"
-                >
-                  <Copy className="h-3 w-3" /> Copy
-                </button>
-              </div>
-            </div>
-          )}
+
 
           <button
             type="button"

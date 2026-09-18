@@ -121,12 +121,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {indexer && indexer.ok && indexer.processed !== null && (
+      {/* {indexer && indexer.ok && indexer.processed !== null && (
         <p className="text-xs text-text-secondary">
           Indexer · tracking to slot {indexer.processed.toLocaleString()}
           {indexer.lag !== null && indexer.lag > 0 ? ` (lag ${indexer.lag.toLocaleString()} slots)` : ""}
         </p>
-      )}
+      )} */}
 
       <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
         <TabButton active={tab === "following"} label="Following" icon={UserPlus} onClick={() => setTab("following")} />
