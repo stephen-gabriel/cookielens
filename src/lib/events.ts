@@ -31,6 +31,7 @@ export type FeedEvent = {
   id: number;
   archetype: Archetype;
   wallet: string | null;
+  username?: string | null;
   token: { mint: string; symbol: string; name: string } | null;
   payload: SocialEventPayload;
   significance: number;

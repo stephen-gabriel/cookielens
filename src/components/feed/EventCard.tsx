@@ -16,7 +16,7 @@ function MetricChip({ label, value, tone }: { label: string; value: string; tone
 }
 
 export function EventCard({ event }: { event: FeedEvent }) {
-  const { payload, token, wallet, archetype, createdAt } = event;
+  const { payload, token, wallet, username, archetype, createdAt } = event;
   const metrics = payload.metrics;
   const social = payload.social;
 
@@ -26,6 +26,12 @@ export function EventCard({ event }: { event: FeedEvent }) {
         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
           <span>{ARCHETYPE_EMOJI[archetype]}</span>
           <span className="uppercase tracking-wide">{ARCHETYPE_LABEL[archetype]}</span>
+          {username && (
+            <>
+              <span>·</span>
+              <span className="font-semibold text-primary">@{username}</span>
+            </>
+          )}
           <span>·</span>
           <time>{timeAgo(new Date(createdAt).getTime() / 1000)}</time>
         </div>
@@ -83,7 +89,7 @@ export function EventCard({ event }: { event: FeedEvent }) {
             href={`/wallets/${wallet}`}
             className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs text-secondary transition hover:border-secondary/50 hover:text-secondary"
           >
-            <UserPlus className="h-3 w-3" /> Inspect wallet
+            <UserPlus className="h-3 w-3" /> {username ? `@${username}` : "Inspect wallet"}
           </Link>
         )}
       </footer>
