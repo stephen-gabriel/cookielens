@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 import { readSession } from "@/server/auth/session";
 import { getDb } from "@/server/db";
-import { follows, socialEvents, tokens, users } from "@/server/db/schema";
+import { follows, socialEvents, tokens, users, activities } from "@/server/db/schema";
 import type { FeedEvent } from "@/lib/events";
 import { short } from "@/lib/indexer-format";
 
@@ -63,12 +63,96 @@ export async function GET(req: NextRequest) {
         .from(follows)
         .where(eq(follows.followerWallet, session.wallet))
         .limit(1000);
-      const wallets = following.map((f) => f.followee);
-      if (wallets.length === 0) {
+      const walletsList = following.map((f) => f.followee);
+      if (walletsList.length === 0) {
         return NextResponse.json({ ok: true, events: [] });
       }
-      const rows = await base.where(inArray(socialEvents.wallet, wallets)).limit(limit);
-      return NextResponse.json({ ok: true, events: mapEvents(rows) });
+
+      const actRows = await db
+        .select({
+          id: activities.id,
+          signature: activities.signature,
+          wallet: activities.wallet,
+          tokenMint: activities.tokenMint,
+          type: activities.type,
+          amount: activities.amount,
+          valueUsd: activities.valueUsd,
+          timestamp: activities.timestamp,
+          slot: activities.slot,
+          meta: activities.meta,
+          tokenSymbol: tokens.symbol,
+          tokenName: tokens.name,
+          username: users.username,
+        })
+        .from(activities)
+        .leftJoin(tokens, eq(activities.tokenMint, tokens.mint))
+        .leftJoin(users, eq(users.walletAddress, activities.wallet))
+        .where(inArray(activities.wallet, walletsList))
+        .orderBy(desc(activities.timestamp))
+        .limit(limit);
+
+      const allWallets = new Set<string>();
+      for (const r of actRows) {
+        if (r.wallet) allWallets.add(r.wallet);
+        const meta = r.meta as { counter?: string } | null;
+        if (meta?.counter) allWallets.add(meta.counter);
+      }
+      const userRows = await db
+        .select({ walletAddress: users.walletAddress, username: users.username })
+        .from(users)
+        .where(inArray(users.walletAddress, [...allWallets]));
+      const usernameMap = new Map<string, string>();
+      for (const u of userRows) {
+        if (u.username) usernameMap.set(u.walletAddress, u.username);
+      }
+
+      const events: FeedEvent[] = actRows.map((r) => {
+        const meta = r.meta as { counter?: string } | null;
+        const sender = r.wallet;
+        const counter = meta?.counter;
+        const senderUser = usernameMap.get(sender) ?? r.username;
+        const counterUser = counter ? usernameMap.get(counter) : null;
+        const tokenSym = r.tokenSymbol ?? (r.tokenMint === "So11111111111111111111111111111111111111112" ? "COOK" : r.tokenMint ? r.tokenMint.slice(0, 4) : "COOK");
+        const rawAmt = r.amount ? Number(r.amount) : 0;
+        const divisor = r.tokenMint === "So11111111111111111111111111111111111111112" ? 1e9 : 1;
+        const amtNum = rawAmt / divisor;
+        const amtStr = amtNum > 0 ? amtNum.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "";
+
+        let title = `${r.type.toUpperCase()}`;
+        if (r.type === "transfer" && counter) {
+          if (senderUser && counterUser) {
+            title = `@${senderUser} sent @${counterUser} ${amtStr} ${tokenSym}`;
+          } else if (senderUser) {
+            title = `@${senderUser} sent ${short(counter)} ${amtStr} ${tokenSym}`;
+          } else if (counterUser) {
+            title = `${short(sender)} sent @${counterUser} ${amtStr} ${tokenSym}`;
+          } else {
+            title = `${short(sender)} sent ${short(counter)} ${amtStr} ${tokenSym}`;
+          }
+        } else if (senderUser) {
+          title = `@${senderUser} performed ${r.type}`;
+        } else {
+          title = `${short(sender)} performed ${r.type}`;
+        }
+
+        return {
+          id: r.id,
+          archetype: "network_activity" as const,
+          wallet: r.wallet,
+          username: senderUser ?? null,
+          token: r.tokenMint
+            ? { mint: r.tokenMint, symbol: tokenSym, name: r.tokenName ?? r.tokenMint }
+            : null,
+          payload: {
+            title,
+            amount: amtStr ? `${amtStr} ${tokenSym}` : undefined,
+          },
+          significance: Number(r.valueUsd ?? 0) || 1,
+          createdAt: r.timestamp.toISOString(),
+        };
+      });
+
+      return NextResponse.json({ ok: true, events });
     }
 
     const rows = await base.limit(limit);
