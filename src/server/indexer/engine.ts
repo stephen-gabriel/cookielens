@@ -227,6 +227,10 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
   }
 
   // ---- Significance engine -----------------------------------------------------
+  async function getUsername(wallet: string) {
+    const rows = (await sql`select username from users where wallet_address = ${wallet} limit 1`) as { username: string | null }[];
+    return rows[0]?.username ?? null;
+  }
   async function tokenSymbol(mint: string) {
     const rows = (await sql`select symbol from tokens where mint = ${mint}`) as {
       symbol: string | null;
@@ -253,12 +257,28 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
       if (act.type !== "transfer") continue;
       const prior = await hasPriorActivity(act.wallet, act.tokenMint, act.sig);
       if (prior) continue;
+      const senderUser = await getUsername(act.wallet);
+      const counterUser = act.counter ? await getUsername(act.counter) : null;
+      const sym = await tokenSymbol(act.tokenMint);
+      const amt = fmtAmount(act.amount);
+
+      let title = `${short(act.wallet)} entered ${sym}`;
+      if (act.counter) {
+        if (senderUser && counterUser) {
+          title = `@${senderUser} sent @${counterUser} ${amt} ${sym}`;
+        } else if (senderUser) {
+          title = `@${senderUser} sent ${short(act.counter)} ${amt} ${sym}`;
+        } else if (counterUser) {
+          title = `${short(act.wallet)} sent @${counterUser} ${amt} ${sym}`;
+        }
+      }
+
       events.push({
         archetype: "significant_entry",
         wallet: act.wallet,
         tokenMint: act.tokenMint,
         significance: 100 + (Number(act.usd) || 0) / 10,
-        payload: { title: `${short(act.wallet)} entered ${await tokenSymbol(act.tokenMint)}` },
+        payload: { title },
         sourceActivityId: act.id,
       });
     }
@@ -269,14 +289,30 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
       const isLargeCook = cooks >= COOK_LARGE_COOKS;
       if (!isLargeCook && usd < LARGE_USD) continue;
       if (act.type === "swap" && usd < LARGE_USD * 10 && !isLargeCook) continue;
+      const senderUser = await getUsername(act.wallet);
+      const counterUser = act.counter ? await getUsername(act.counter) : null;
+      const sym = await tokenSymbol(act.tokenMint);
+      const amt = fmtAmount(act.amount);
+
+      let title = `${short(act.wallet)} moved ${amt} ${sym}`;
+      if (act.type === "transfer" && act.counter) {
+        if (senderUser && counterUser) {
+          title = `@${senderUser} sent @${counterUser} ${amt} ${sym}`;
+        } else if (senderUser) {
+          title = `@${senderUser} sent ${short(act.counter)} ${amt} ${sym}`;
+        } else if (counterUser) {
+          title = `${short(act.wallet)} sent @${counterUser} ${amt} ${sym}`;
+        }
+      }
+
       events.push({
         archetype: "large_movement",
         wallet: act.wallet,
         tokenMint: act.tokenMint,
         significance: Math.max(usd, cooks),
         payload: {
-          title: `${short(act.wallet)} moved ${fmtAmount(act.amount)} ${await tokenSymbol(act.tokenMint)}`,
-          amount: `${fmtAmount(act.amount)} ${await tokenSymbol(act.tokenMint)}`,
+          title,
+          amount: `${amt} ${sym}`,
         },
         sourceActivityId: act.id,
       });
@@ -333,7 +369,7 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
         insert into activities (signature, wallet, token_mint, type, amount, value_usd, timestamp, slot, meta)
         values (${parsed.sig}, ${act.wallet}, ${act.tokenMint}, ${act.type},
                 ${act.amount}, ${act.usd}, ${new Date(blockTime * 1000).toISOString()},
-                ${slot}, ${JSON.stringify({ tokens: [...parsed.tokens], programIds: [...parsed.programIds] })})
+                ${slot}, ${JSON.stringify({ counter: act.counter, tokens: [...parsed.tokens], programIds: [...parsed.programIds] })})
         on conflict (signature) do nothing returning id, signature, type, amount, value_usd, wallet, token_mint`) as {
         id: number;
         signature: string;
@@ -353,6 +389,7 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
           type: row.type,
           amount: row.amount,
           usd: Number(row.value_usd) || 0,
+          counter: act.counter,
         });
       }
     }
@@ -542,6 +579,7 @@ type Activity = {
   type: string;
   amount: string | null;
   usd: number;
+  counter?: string | null;
 };
 
 type SocialEvent = {

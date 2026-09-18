@@ -31,6 +31,7 @@ type WalletProfile = {
     id: number;
     signature: string;
     type: string;
+    title?: string;
     amount: number | null;
     valueUsd: number | null;
     timestamp: string;
@@ -205,9 +206,9 @@ export default function WalletProfilePage() {
             {profile.recentActivity.map((a) => (
               <li key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 text-sm">
                 <span className="min-w-0">
-                  <span className="block font-semibold uppercase">{a.type}</span>
+                  <span className="block font-semibold">{a.title ?? a.type.toUpperCase()}</span>
                   <span className="block truncate text-xs text-text-secondary">
-                    {a.token ? `${a.token.symbol ?? "TOKEN"} · ${a.token.name ?? a.token.mint}` : a.signature}
+                    {a.token ? `${a.token.symbol ?? "TOKEN"} · ${a.token.name ?? a.token.mint}` : truncateAddress(a.signature, 16)}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-text-secondary">
