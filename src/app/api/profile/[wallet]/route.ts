@@ -50,7 +50,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
     })
     .from(activities)
     .leftJoin(tokens, eq(activities.tokenMint, tokens.mint))
-    .where(eq(activities.wallet, wallet))
+    .where(sql`${activities.wallet} = ${wallet} OR ${activities.meta}->>'counter' = ${wallet}`)
     .orderBy(desc(activities.timestamp))
     .limit(10);
 
