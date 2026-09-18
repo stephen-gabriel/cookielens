@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useState, use } from "react";
 import toast from "react-hot-toast";
 import { getAsset, type DasAsset } from "@/lib/das";
@@ -210,16 +210,26 @@ export default function TokenDetailPage({ params }: { params: Promise<{ mint: st
 
           {buyers.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-xs uppercase tracking-wide text-text-secondary">Recent buyers</h3>
+              <h3 className="text-xs uppercase tracking-wide text-text-secondary">Recent buyers & activity</h3>
               <ul className="mt-2 space-y-1.5">
                 {buyers.map((b) => (
                   <li key={`${b.wallet}-${b.signature}`} className="flex items-center justify-between text-sm">
                     <Link href={`/wallets/${b.wallet}`} className="font-mono text-primary underline">
                       {truncateAddress(b.wallet, 6)}
                     </Link>
-                    <span className="text-xs capitalize text-text-secondary">
-                      {b.type} {b.amount ? formatCompact(b.amount) : ""} · {formatUsd(b.valueUsd)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs capitalize text-text-secondary">
+                        {b.type} {b.amount ? formatCompact(b.amount) : ""} · {formatUsd(b.valueUsd)}
+                      </span>
+                      <a
+                        href={`${EXPLORER_URL}/tx/${b.signature}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+                      >
+                        Tx <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
                   </li>
                 ))}
               </ul>

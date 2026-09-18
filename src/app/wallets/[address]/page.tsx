@@ -204,16 +204,23 @@ export default function WalletProfilePage() {
         ) : (
           <ul className="mt-2 space-y-2">
             {profile.recentActivity.map((a) => (
-              <li key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 text-sm">
-                <span className="min-w-0">
-                  <span className="block font-semibold">{a.title ?? a.type.toUpperCase()}</span>
-                  <span className="block truncate text-xs text-text-secondary">
-                    {a.token ? `${a.token.symbol ?? "TOKEN"} · ${a.token.name ?? a.token.mint}` : truncateAddress(a.signature, 16)}
+              <li key={a.id}>
+                <a
+                  href={`${EXPLORER_URL}/tx/${a.signature}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 text-sm no-underline transition hover:border-primary/50 hover:bg-surface-hover hover:no-underline"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-text-primary">{a.title ?? a.type.toUpperCase()}</span>
+                    <span className="block truncate font-mono text-xs text-text-secondary">
+                      {a.token ? `${a.token.symbol ?? "TOKEN"} · ${a.token.name ?? a.token.mint}` : truncateAddress(a.signature, 16)} · Tx: {a.signature.slice(0, 12)}…
+                    </span>
                   </span>
-                </span>
-                <span className="shrink-0 text-xs text-text-secondary">
-                  {new Date(a.timestamp).toLocaleString()}
-                </span>
+                  <span className="flex shrink-0 items-center gap-1.5 pl-3 text-xs text-primary">
+                    View <ExternalLink className="h-3.5 w-3.5" />
+                  </span>
+                </a>
               </li>
             ))}
           </ul>
