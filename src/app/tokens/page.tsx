@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Loader2, Search } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { searchFungibleAssets, type DasAsset } from "@/lib/das";
 import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
@@ -46,8 +46,7 @@ export default function TokensPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [page, setPage] = useState(1);
   const fullRows = useRef<Row[]>([]);
 
   useEffect(() => {
@@ -76,37 +75,18 @@ export default function TokensPage() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    const trimmed = query.trim();
-    timer.current = setTimeout(async () => {
-      if (!trimmed) {
-        setRows(fullRows.current);
-        setSearching(false);
-        return;
-      }
-      setSearching(true);
-      try {
-        const assets = await searchFungibleAssets(trimmed, 100);
-        const seen = new Set<string>();
-        const list: Row[] = [];
-        for (const a of assets) {
-          if (seen.has(a.id)) continue;
-          seen.add(a.id);
-          if (a.id === COOK_MINT) continue;
-          list.push(toRow(a));
-        }
-        setRows(list);
-      } catch {
-        setRows([]);
-      } finally {
-        setSearching(false);
-      }
-    }, trimmed ? 250 : 0);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [query]);
+  const filtered = rows.filter((r) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return r.name.toLowerCase().includes(q) || r.symbol.toLowerCase().includes(q) || r.mint.toLowerCase().includes(q);
+  });
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const showCook = currentPage === 1 && (!query.trim() || "cookie cook".includes(query.trim().toLowerCase()) || COOK_MINT.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -122,11 +102,13 @@ export default function TokensPage() {
         <Search className="h-4 w-4 shrink-0 text-text-secondary" />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
           placeholder="Search tokens…"
           className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-text-secondary/70"
         />
-        {searching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-text-secondary" />}
       </div>
 
       {error && <div className="mt-6 rounded-lg border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</div>}
@@ -138,69 +120,103 @@ export default function TokensPage() {
       )}
 
       {!loading && (
-        <div className="mt-8 overflow-x-auto rounded-lg border border-border bg-surface">
-          <table className="w-full min-w-[560px] text-left text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-                <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">#</th>
-                <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
-                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
-                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">24h</th>
-                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Market cap</th>
-                <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Holders</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-border/50 bg-surface-hover/30">
-                <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">1</td>
-                <td className="px-3 py-2.5 sm:px-4 sm:py-3">
-                  <Link href="/token/36ZrtQoab5MhhySaP1YSTwUahSk6GRVUTtZ6cuVfm9e1" className="flex items-center gap-2 sm:gap-3">
-                    <TokenImage image={null} symbol="COOK" className="h-7 w-7 bg-primary/15 text-primary sm:h-8 sm:w-8" />
-                    <div>
-                      <div className="font-medium text-text-primary">
-                        Cookie <span className="ml-1 font-mono text-xs text-text-secondary">COOK</span>
-                      </div>
-                      <div className="text-xs text-text-secondary">Native token of Cookie Chain</div>
-                    </div>
-                  </Link>
-                </td>
-                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.priceUsd)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">—</td>
-                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.marketCapUsd)}</td>
-                <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">—</td>
-              </tr>
-              {rows.map((r, i) => (
-                <tr key={r.mint} className="border-b border-border/50 last:border-0 hover:bg-surface-hover/50">
-                  <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">{i + 2}</td>
-                  <td className="px-3 py-2.5 sm:px-4 sm:py-3">
-                    <Link href={`/token/${r.mint}`} className="flex items-center gap-2 sm:gap-3">
-                      <TokenImage image={r.image} symbol={r.symbol} />
-                      <div>
-                        <div className="font-medium text-text-primary">
-                          {r.name} <span className="ml-1 font-mono text-xs text-text-secondary">{r.symbol}</span>
+        <>
+          <div className="mt-8 overflow-x-auto rounded-lg border border-border bg-surface">
+            <table className="w-full min-w-[560px] text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
+                  <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">#</th>
+                  <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
+                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
+                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">24h</th>
+                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Market cap</th>
+                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Holders</th>
+                </tr>
+              </thead>
+              <tbody>
+                {showCook && (
+                  <tr className="border-b border-border/50 bg-surface-hover/30">
+                    <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">1</td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+                      <Link href={`/token/${COOK_MINT}`} className="flex items-center gap-2 sm:gap-3">
+                        <TokenImage image={null} symbol="COOK" className="h-7 w-7 bg-primary/15 text-primary sm:h-8 sm:w-8" />
+                        <div>
+                          <div className="font-medium text-text-primary">
+                            Cookie <span className="ml-1 font-mono text-xs text-text-secondary">COOK</span>
+                          </div>
+                          <div className="text-xs text-text-secondary">Native token of Cookie Chain</div>
                         </div>
-                        <div className="font-mono text-xs text-text-secondary">supply {formatCompact(r.supply)}</div>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
-                    {r.holderCount > 0 ? formatCompact(r.holderCount) : "—"}
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-text-secondary sm:px-4">
-                    {query.trim() ? "No tokens match that search." : "No tokens discovered yet."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.priceUsd)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">—</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.marketCapUsd)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">—</td>
+                  </tr>
+                )}
+                {paginated.map((r, i) => {
+                  const absoluteIndex = (currentPage - 1) * pageSize + i + (showCook ? 2 : 1);
+                  return (
+                    <tr key={r.mint} className="border-b border-border/50 last:border-0 hover:bg-surface-hover/50">
+                      <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">{absoluteIndex}</td>
+                      <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+                        <Link href={`/token/${r.mint}`} className="flex items-center gap-2 sm:gap-3">
+                          <TokenImage image={r.image} symbol={r.symbol} />
+                          <div>
+                            <div className="font-medium text-text-primary">
+                              {r.name} <span className="ml-1 font-mono text-xs text-text-secondary">{r.symbol}</span>
+                            </div>
+                            <div className="font-mono text-xs text-text-secondary">supply {formatCompact(r.supply)}</div>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
+                        {r.holderCount > 0 ? formatCompact(r.holderCount) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!showCook && paginated.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-3 py-8 text-center text-text-secondary sm:px-4">
+                      {query.trim() ? "No tokens match that search." : "No tokens discovered yet."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm text-text-secondary">
+              <div>
+                Showing page <span className="font-semibold text-text-primary">{currentPage}</span> of{" "}
+                <span className="font-semibold text-text-primary">{totalPages}</span> ({filtered.length} tokens)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="flex cursor-pointer items-center gap-1 rounded-md border border-border bg-surface px-3 py-1.5 transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="flex cursor-pointer items-center gap-1 rounded-md border border-border bg-surface px-3 py-1.5 transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
