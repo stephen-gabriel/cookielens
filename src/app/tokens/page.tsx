@@ -121,59 +121,59 @@ export default function TokensPage() {
 
       {!loading && (
         <>
-          <div className="mt-8 overflow-x-auto rounded-lg border border-border bg-surface">
-            <table className="w-full min-w-[560px] text-left text-xs sm:text-sm">
+          <div className="mt-8 overflow-hidden rounded-lg border border-border bg-surface">
+            <table className="w-full table-fixed text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wide text-text-secondary">
-                  <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">#</th>
-                  <th className="px-3 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">24h</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Market cap</th>
-                  <th className="px-3 py-2.5 text-right font-medium sm:px-4 sm:py-3">Holders</th>
+                  <th className="w-12 px-2 py-2.5 font-medium sm:px-4 sm:py-3">#</th>
+                  <th className="px-2 py-2.5 font-medium sm:px-4 sm:py-3">Token</th>
+                  <th className="w-24 px-2 py-2.5 text-right font-medium sm:px-4 sm:py-3">Price</th>
+                  <th className="w-20 px-2 py-2.5 text-right font-medium sm:px-4 sm:py-3">24h</th>
+                  <th className="w-28 px-2 py-2.5 text-right font-medium sm:px-4 sm:py-3">M.Cap</th>
+                  <th className="w-20 px-2 py-2.5 text-right font-medium sm:px-4 sm:py-3">Holders</th>
                 </tr>
               </thead>
               <tbody>
                 {showCook && (
                   <tr className="border-b border-border/50 bg-surface-hover/30">
-                    <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">1</td>
-                    <td className="px-3 py-2.5 sm:px-4 sm:py-3">
-                      <Link href={`/token/${COOK_MINT}`} className="flex items-center gap-2 sm:gap-3">
-                        <TokenImage image={null} symbol="COOK" className="h-7 w-7 bg-primary/15 text-primary sm:h-8 sm:w-8" />
-                        <div>
-                          <div className="font-medium text-text-primary">
+                    <td className="w-12 px-2 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">1</td>
+                    <td className="px-2 py-2.5 sm:px-4 sm:py-3">
+                      <Link href={`/token/${COOK_MINT}`} className="flex items-center gap-2">
+                        <TokenImage image={null} symbol="COOK" className="h-7 w-7 shrink-0 bg-primary/15 text-primary sm:h-8 sm:w-8" />
+                        <div className="min-w-0 flex-1 truncate">
+                          <div className="truncate font-medium text-text-primary">
                             Cookie <span className="ml-1 font-mono text-xs text-text-secondary">COOK</span>
                           </div>
-                          <div className="text-xs text-text-secondary">Native token of Cookie Chain</div>
+                          <div className="truncate text-xs text-text-secondary">Native token</div>
                         </div>
                       </Link>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.priceUsd)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">—</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.marketCapUsd)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">—</td>
+                    <td className="w-24 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.priceUsd)}</td>
+                    <td className="w-20 px-2 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">—</td>
+                    <td className="w-28 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(cook?.marketCapUsd)}</td>
+                    <td className="w-20 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">—</td>
                   </tr>
                 )}
                 {paginated.map((r, i) => {
                   const absoluteIndex = (currentPage - 1) * pageSize + i + (showCook ? 2 : 1);
                   return (
                     <tr key={r.mint} className="border-b border-border/50 last:border-0 hover:bg-surface-hover/50">
-                      <td className="px-3 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">{absoluteIndex}</td>
-                      <td className="px-3 py-2.5 sm:px-4 sm:py-3">
-                        <Link href={`/token/${r.mint}`} className="flex items-center gap-2 sm:gap-3">
-                          <TokenImage image={r.image} symbol={r.symbol} />
-                          <div>
-                            <div className="font-medium text-text-primary">
+                      <td className="w-12 px-2 py-2.5 font-mono text-text-secondary sm:px-4 sm:py-3">{absoluteIndex}</td>
+                      <td className="px-2 py-2.5 sm:px-4 sm:py-3">
+                        <Link href={`/token/${r.mint}`} className="flex items-center gap-2">
+                          <TokenImage image={r.image} symbol={r.symbol} className="h-7 w-7 shrink-0 sm:h-8 sm:w-8" />
+                          <div className="min-w-0 flex-1 truncate">
+                            <div className="truncate font-medium text-text-primary">
                               {r.name} <span className="ml-1 font-mono text-xs text-text-secondary">{r.symbol}</span>
                             </div>
-                            <div className="font-mono text-xs text-text-secondary">supply {formatCompact(r.supply)}</div>
+                            <div className="truncate font-mono text-xs text-text-secondary">supply {formatCompact(r.supply)}</div>
                           </div>
                         </Link>
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
+                      <td className="w-24 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
+                      <td className="w-20 px-2 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
+                      <td className="w-28 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
+                      <td className="w-20 px-2 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
                         {r.holderCount > 0 ? formatCompact(r.holderCount) : "—"}
                       </td>
                     </tr>
