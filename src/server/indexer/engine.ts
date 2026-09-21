@@ -130,8 +130,23 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
     return map;
   }
 
+  function tokenAccountOwnerMap(meta: any, accountKeys: string[]) {
+    const map = new Map<string, string>();
+    for (const list of [meta?.preTokenBalances ?? [], meta?.postTokenBalances ?? []]) {
+      for (const b of list) {
+        const key = accountKeys[b.accountIndex];
+        if (key && b.owner) map.set(key, b.owner);
+      }
+    }
+    return map;
+  }
+
   function tokenMintOfAccount(account: string, meta: any, accountKeys: string[]) {
     return tokenAccountMintMap(meta, accountKeys).get(account) ?? null;
+  }
+
+  function tokenOwnerOfAccount(account: string, meta: any, accountKeys: string[]) {
+    return tokenAccountOwnerMap(meta, accountKeys).get(account) ?? null;
   }
 
   function parseParsedInstr(instr: any, accountKeys: string[], meta: any) {
@@ -161,13 +176,15 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
         const amountRaw = info.tokenAmount?.amount ?? info.amount ?? "0";
         const amount = Number(amountRaw) || 0;
         if (amount <= 0) return [];
+        const sourceOwner = tokenOwnerOfAccount(info.source, meta, accountKeys) ?? info.authority ?? info.source;
+        const destOwner = tokenOwnerOfAccount(info.destination, meta, accountKeys) ?? info.destination;
         return [
           {
             type: "transfer",
             tokenMint: mint,
             amount: amountRaw,
-            wallet: info.authority ?? info.source,
-            counter: info.destination,
+            wallet: sourceOwner,
+            counter: destOwner,
             usd: null,
           },
         ];

@@ -52,15 +52,16 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
     })
     .from(activities)
     .leftJoin(tokens, eq(activities.tokenMint, tokens.mint))
-    .where(sql`${activities.wallet} = ${wallet} OR ${activities.meta}->>'counter' = ${wallet}`)
+    .where(sql`${activities.wallet} = ${wallet} OR ${activities.meta}->>'counter' = ${wallet} OR ${activities.meta}->>'owner' = ${wallet}`)
     .orderBy(desc(activities.timestamp))
     .limit(10);
 
   const walletAddresses = new Set<string>([wallet]);
   for (const r of recent) {
     if (r.wallet) walletAddresses.add(r.wallet);
-    const meta = r.meta as { counter?: string } | null;
+    const meta = r.meta as { counter?: string; owner?: string } | null;
     if (meta?.counter) walletAddresses.add(meta.counter);
+    if (meta?.owner) walletAddresses.add(meta.owner);
   }
 
   const userRows = await db
@@ -74,8 +75,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
   }
 
   const recentActivity = recent.map((r) => {
-    const meta = r.meta as { counter?: string } | null;
-    const sender = r.wallet;
+    const meta = r.meta as { counter?: string; owner?: string } | null;
+    const sender = meta?.owner ?? r.wallet;
     const counter = meta?.counter;
     const senderUser = usernameMap.get(sender);
     const counterUser = counter ? usernameMap.get(counter) : null;
@@ -88,14 +89,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
     let title = `${r.type.toUpperCase()}`;
     try {
       if (r.type === "transfer") {
-        const dest = counter ? (counterUser ? `@${counterUser}` : truncateAddress(counter, 4)) : "address";
+        const dest = counter ? (counterUser ? `@${counterUser}` : truncateAddress(counter, 4)) : null;
         const src = senderUser ? `@${senderUser}` : truncateAddress(sender, 4);
         if (sender === wallet) {
-          title = `Sent ${amtStr ? amtStr + " " : ""}${tokenSym} -> ${dest}`;
+          title = dest ? `Sent ${amtStr ? amtStr + " " : ""}${tokenSym} -> ${dest}` : `Sent ${amtStr ? amtStr + " " : ""}${tokenSym}`;
         } else if (counter === wallet) {
           title = `Received ${amtStr ? amtStr + " " : ""}${tokenSym} from ${src}`;
         } else {
-          title = `Transfer ${amtStr ? amtStr + " " : ""}${tokenSym}`;
+          title = dest ? `Transfer ${amtStr ? amtStr + " " : ""}${tokenSym} -> ${dest}` : `Transfer ${amtStr ? amtStr + " " : ""}${tokenSym}`;
         }
       } else if (r.type === "swap") {
         title = `Swapped ${amtStr ? amtStr + " " : ""}${tokenSym}`;
