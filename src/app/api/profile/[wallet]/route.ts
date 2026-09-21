@@ -8,6 +8,7 @@ import { isValidAddress, getRecentSignatures } from "@/lib/chain";
 import { readSession } from "@/server/auth/session";
 import { jsonError } from "@/server/http";
 import { short } from "@/lib/indexer-format";
+import { truncateAddress } from "@/lib/format";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
       tokenMint: activities.tokenMint,
       tokenSymbol: tokens.symbol,
       tokenName: tokens.name,
+      tokenDecimals: tokens.decimals,
       meta: activities.meta,
     })
     .from(activities)
@@ -78,24 +80,40 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wallet: st
     const senderUser = usernameMap.get(sender);
     const counterUser = counter ? usernameMap.get(counter) : null;
     const tokenSym = r.tokenSymbol ?? (r.tokenMint === "So11111111111111111111111111111111111111112" ? "COOK" : r.tokenMint ? r.tokenMint.slice(0, 4) : "COOK");
+    const decimals = r.tokenMint === "So11111111111111111111111111111111111111112" ? 9 : (r.tokenDecimals ?? 9);
     const rawAmt = r.amount ? Number(r.amount) : 0;
-    const divisor = r.tokenMint === "So11111111111111111111111111111111111111112" ? 1e9 : 1;
-    const amtNum = rawAmt / divisor;
+    const amtNum = rawAmt / Math.pow(10, decimals);
     const amtStr = amtNum > 0 ? amtNum.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "";
 
     let title = `${r.type.toUpperCase()}`;
-    if (r.type === "transfer" && counter) {
-      if (senderUser && counterUser) {
-        title = `@${senderUser} sent @${counterUser} ${amtStr} ${tokenSym}`;
-      } else if (senderUser) {
-        title = `@${senderUser} sent ${short(counter)} ${amtStr} ${tokenSym}`;
-      } else if (counterUser) {
-        title = `${short(sender)} sent @${counterUser} ${amtStr} ${tokenSym}`;
+    try {
+      if (r.type === "transfer") {
+        const dest = counter ? (counterUser ? `@${counterUser}` : truncateAddress(counter, 4)) : "address";
+        const src = senderUser ? `@${senderUser}` : truncateAddress(sender, 4);
+        if (sender === wallet) {
+          title = `Sent ${amtStr ? amtStr + " " : ""}${tokenSym} -> ${dest}`;
+        } else if (counter === wallet) {
+          title = `Received ${amtStr ? amtStr + " " : ""}${tokenSym} from ${src}`;
+        } else {
+          title = `Transfer ${amtStr ? amtStr + " " : ""}${tokenSym}`;
+        }
+      } else if (r.type === "swap") {
+        title = `Swapped ${amtStr ? amtStr + " " : ""}${tokenSym}`;
+      } else if (r.type === "buy") {
+        title = `Bought ${amtStr ? amtStr + " " : ""}${tokenSym}`;
+      } else if (r.type === "sell") {
+        title = `Sold ${amtStr ? amtStr + " " : ""}${tokenSym}`;
+      } else if (r.type === "liquidity_add") {
+        title = `Added liquidity ${tokenSym}`;
+      } else if (r.type === "liquidity_remove") {
+        title = `Removed liquidity ${tokenSym}`;
+      } else if (r.type === "token_create") {
+        title = `Created token ${tokenSym}`;
       } else {
-        title = `${short(sender)} sent ${short(counter)} ${amtStr} ${tokenSym}`;
+        title = `${r.type.toUpperCase()} ${amtStr ? amtStr + " " : ""}${tokenSym}`.trim();
       }
-    } else if (senderUser) {
-      title = `@${senderUser} ${r.type}`;
+    } catch {
+      title = `Transaction ${r.signature.slice(0, 8)}…`;
     }
 
     return {

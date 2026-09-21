@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
           meta: activities.meta,
           tokenSymbol: tokens.symbol,
           tokenName: tokens.name,
+          tokenDecimals: tokens.decimals,
           username: users.username,
         })
         .from(activities)
@@ -113,9 +114,9 @@ export async function GET(req: NextRequest) {
         const senderUser = usernameMap.get(sender) ?? r.username;
         const counterUser = counter ? usernameMap.get(counter) : null;
         const tokenSym = r.tokenSymbol ?? (r.tokenMint === "So11111111111111111111111111111111111111112" ? "COOK" : r.tokenMint ? r.tokenMint.slice(0, 4) : "COOK");
+        const decimals = r.tokenMint === "So11111111111111111111111111111111111111112" ? 9 : (r.tokenDecimals ?? 9);
         const rawAmt = r.amount ? Number(r.amount) : 0;
-        const divisor = r.tokenMint === "So11111111111111111111111111111111111111112" ? 1e9 : 1;
-        const amtNum = rawAmt / divisor;
+        const amtNum = rawAmt / Math.pow(10, decimals);
         const amtStr = amtNum > 0 ? amtNum.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "";
 
         let title = `${r.type.toUpperCase()}`;

@@ -9,7 +9,7 @@ import { WalletClaim } from "@/components/auth/WalletClaim";
 import { BackButton } from "@/components/ui/BackButton";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWallet } from "@/lib/providers";
-import { truncateAddress } from "@/lib/format";
+import { truncateAddress, timeAgo } from "@/lib/format";
 import { EXPLORER_URL } from "@/lib/constants";
 
 type WalletProfile = {
@@ -212,7 +212,12 @@ export default function WalletProfilePage() {
                   className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 text-sm no-underline transition hover:border-primary/50 hover:bg-surface-hover hover:no-underline"
                 >
                   <span className="min-w-0">
-                    <span className="block font-semibold text-text-primary">{a.title ?? a.type.toUpperCase()}</span>
+                    <span className="block font-semibold text-text-primary">
+                      {a.title ?? a.type.toUpperCase()}{" "}
+                      <span className="text-xs font-normal text-text-secondary">
+                        · {timeAgo(new Date(a.timestamp).getTime() / 1000)}
+                      </span>
+                    </span>
                     <span className="block truncate font-mono text-xs text-text-secondary">
                       {a.token ? `${a.token.symbol ?? "TOKEN"} · ${a.token.name ?? a.token.mint}` : truncateAddress(a.signature, 16)} · Tx: {a.signature.slice(0, 12)}…
                     </span>
