@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const indexer = createIndexer(process.env);
 
@@ -30,8 +31,8 @@ async function handle(req: NextRequest) {
   if (!auth.ok) return NextResponse.json({ ok: false, error: auth.reason }, { status: 401 });
 
   const params = new URL(req.url).searchParams;
-  const maxSlots = Math.max(10, Math.min(400, Number(params.get("slots")) || 200));
-  const maxMs = Math.max(5000, Math.min(50000, Number(params.get("maxMs")) || 9000));
+  const maxSlots = Math.max(100, Math.min(2000, Number(params.get("slots")) || 500));
+  const maxMs = Math.max(5000, Math.min(55000, Number(params.get("maxMs")) || 45000));
 
   try {
     const result = await indexer.runBoundedCycle({ maxSlots, maxMs });

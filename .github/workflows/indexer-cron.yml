@@ -22,6 +22,6 @@ jobs:
             exit 0
           fi
           curl -sS --max-time 115 \
-            "$URL/api/indexer/run?token=$TOKEN&slots=300" \
+            "$URL/api/indexer/run?token=$TOKEN&slots=2000&maxMs=55000" \
             && echo "" \
             || echo "indexer run non-zero (feed may simply be up to date)"

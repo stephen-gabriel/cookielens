@@ -25,8 +25,8 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
     "HN7egj4JfDGSjHkumZ2ZugJu7kAShny5A62Tr3tYSS3N",
   ]);
 
-  const CONCURRENCY = Math.max(1, Math.min(8, Number(env.INDEXER_CONCURRENCY) || 4));
-  const BATCH = Math.max(10, Math.min(1000, Number(env.INDEXER_BATCH) || 300));
+  const CONCURRENCY = Math.max(1, Math.min(16, Number(env.INDEXER_CONCURRENCY) || 8));
+  const BATCH = Math.max(10, Math.min(2000, Number(env.INDEXER_BATCH) || 500));
   const LARGE_USD = Number(env.INDEXER_LARGE_USD) || 100;
   const COOK_LARGE_COOKS = Number(env.INDEXER_LARGE_COOKS) || 1_000_000;
 
@@ -542,50 +542,55 @@ export function createIndexer(env: NodeJS.ProcessEnv) {
   return { rpc, getState, setState, processSlot, writeEvents, runCycle, runBoundedCycle };
 }
 
-/** One catch-up cycle bounded for serverless execution. */
-async function runBoundedCycle(this: Engine, { maxSlots = 200, maxMs = 9000 } = {}) {
+/** One catch-up cycle bounded for serverless execution. Loops batches until the time budget is exhausted. */
+async function runBoundedCycle(this: Engine, { maxSlots = 500, maxMs = 30000 } = {}) {
   const started = Date.now();
   let startSlot = Number((await this.getState("start_slot", "0")) ?? "0");
   const head = await this.rpc("getSlot", []);
   if (startSlot <= 0) startSlot = head - 1;
-  const end = Math.min(head, startSlot + Math.min(300, maxSlots));
-  if (end <= startSlot) {
-    await this.setState("last_head", String(head));
-    return { done: 0, actions: 0, events: 0, head, cancelled: false };
+
+  const allCycleActs: Activity[] = [];
+  let done = 0;
+  let cancelled = false;
+
+  while (Date.now() - started < maxMs) {
+    if (Date.now() - started + 2000 > maxMs) break;
+    const end = Math.min(head, startSlot + Math.min(2000, maxSlots));
+    if (end <= startSlot) break;
+
+    const slots = (await this.rpc("getBlocks", [startSlot + 1, end])) ?? [];
+    let queue = [...slots];
+    let next = 0;
+    let batchDone = 0;
+    const workers = Array.from({ length: 8 }, async () => {
+      while (next < queue.length) {
+        if (Date.now() - started > maxMs) {
+          cancelled = true;
+          next = queue.length;
+          break;
+        }
+        const s = queue[next++];
+        try {
+          const acts = await this.processSlot(s);
+          allCycleActs.push(...acts);
+        } catch (err) {
+          console.warn(`[indexer] slot ${s} failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        batchDone++;
+      }
+    });
+    await Promise.all(workers);
+    done += batchDone;
+    startSlot += cancelled ? batchDone : slots.length;
+    if (cancelled) break;
+    if (startSlot >= head) break;
   }
 
-  const slots = (await this.rpc("getBlocks", [startSlot + 1, end])) ?? [];
-  let queue = [...slots];
-  let next = 0;
-  let completed = 0;
-  let cancelled = false;
-  const allCycleActs: Activity[] = [];
-  const workers = Array.from({ length: 4 }, async () => {
-    while (next < queue.length) {
-      if (Date.now() - started > maxMs) {
-        cancelled = true;
-        next = queue.length;
-        break;
-      }
-      const s = queue[next++];
-      try {
-        const acts = await this.processSlot(s);
-        allCycleActs.push(...acts);
-        completed++;
-      } catch (err) {
-        console.warn(`[indexer] slot ${s} failed: ${err instanceof Error ? err.message : String(err)}`);
-        completed++;
-      }
-    }
-  });
-  await Promise.all(workers);
-
   const events = await this.writeEvents(allCycleActs);
-  const advancedTo = startSlot + (cancelled ? completed : slots.length);
-  await this.setState("start_slot", String(advancedTo));
+  await this.setState("start_slot", String(startSlot));
   await this.setState("last_run", new Date().toISOString());
   await this.setState("last_head", String(head));
-  return { done: completed, actions: allCycleActs.length, events, head, cancelled };
+  return { done, actions: allCycleActs.length, events, head, cancelled };
 }
 
 type Activity = {

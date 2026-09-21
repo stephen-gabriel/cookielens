@@ -25,7 +25,7 @@ console.log(
   `[indexer] rpc=${process.env.RPC_URL || "https://rpc.cookiescan.io"} batch=${process.env.INDEXER_BATCH || 300}`,
 );
 
-const SLEEP_MS = Math.max(500, Number(process.env.INDEXER_SLEEP_MS) || 4000);
+const SLEEP_MS = Math.max(250, Number(process.env.INDEXER_SLEEP_MS) || 1000);
 let cycle = 0;
 for (;;) {
   cycle++;
@@ -34,12 +34,16 @@ for (;;) {
     console.log(`[indexer] cycle complete (${done} slots, ${actions} actions, ${events} events). exiting.`);
     break;
   }
-  if (actions > 0 || events > 0) {
-    console.log(`[indexer] ${actions} actions -> ${events} social events (slots ${done})`);
-  } else if (cycle % 60 === 0) {
-    const head = await idx.getState("last_head", "?");
-    const at = await idx.getState("start_slot", "?");
+  const head = Number((await idx.getState("last_head", "0")) ?? "0");
+  const at = Number((await idx.getState("start_slot", "0")) ?? "0");
+  const behind = head > 0 ? Math.max(0, head - at) : 0;
+  if (behind === 0 && (actions > 0 || events > 0)) {
+    console.log(`[indexer] ${actions} actions -> ${events} social events (done ${done})`);
+  } else if (behind > 0 && cycle % 25 === 0) {
+    console.log(`[indexer] catching up — ${at}/${head} (behind ${behind})`);
+  } else if (cycle % 600 === 0) {
     console.log(`[indexer] alive — tracking to slot ${at} (head ${head})`);
   }
+  if (behind > 0 && cycle % 500 !== 0) continue;
   await new Promise((r) => setTimeout(r, SLEEP_MS));
 }
