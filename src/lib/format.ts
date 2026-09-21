@@ -32,6 +32,24 @@ export function formatUsd(value: number | null | undefined): string {
   if (value === 0) return "$0.00";
   if (Math.abs(value) >= 100) return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   if (Math.abs(value) >= 1) return `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  if (Math.abs(value) >= 0.01) return `$${value.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+
+  const s = value.toFixed(20);
+  const decimalPart = s.split(".")[1] || "";
+  const zerosMatch = decimalPart.match(/^(0+)/);
+  const zeroCount = zerosMatch ? zerosMatch[1].length : 0;
+
+  if (zeroCount >= 3) {
+    const rawSig = decimalPart.slice(zeroCount, zeroCount + 5);
+    const sigDigits = rawSig.replace(/0+$/, "").slice(0, 3) || rawSig.slice(0, 3);
+    const subscriptZeros = zeroCount
+      .toString()
+      .split("")
+      .map((d) => ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"][Number(d)] ?? d)
+      .join("");
+    return `$0.0₍${subscriptZeros}₎${sigDigits}`;
+  }
+
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 6 })}`;
 }
 

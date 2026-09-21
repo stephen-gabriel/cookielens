@@ -30,6 +30,7 @@ describe("formatUsd", () => {
 
   it("renders small values with precision", () => {
     expect(formatUsd(0.00123)).toBe("$0.00123");
+    expect(formatUsd(0.00000342)).toBe("$0.0₍₅₎342");
   });
 });
 
