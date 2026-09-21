@@ -7,6 +7,7 @@ import { activities, tokens, tokenStats, watches } from "@/server/db/schema";
 import { isValidAddress } from "@/lib/chain";
 import { readSession } from "@/server/auth/session";
 import { jsonError } from "@/server/http";
+import { getSwapMarkets } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 
@@ -74,20 +75,28 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ mint: stri
     isWatched = Number(watch?.n ?? 0) > 0;
   }
 
+  const markets = await getSwapMarkets().catch(() => new Map());
+  const m = markets.get(mint);
+
+  const priceUsd = m?.priceUsd ?? (token?.priceUsd ? Number(token.priceUsd) : null);
+  const marketCap = m?.marketCap ?? (token?.marketCap ? Number(token.marketCap) : null);
+  const holderCount = Math.max(m?.holders ?? 0, token?.holderCount ?? 0);
+  const volume24h = m?.volume24h ?? (token?.volume24h ? Number(token.volume24h) : null);
+
   return NextResponse.json({
     ok: true,
-    token: token
+    token: token || m
       ? {
-          mint: token.mint,
-          symbol: token.symbol,
-          name: token.name,
-          decimals: token.decimals,
-          priceUsd: token.priceUsd ? Number(token.priceUsd) : null,
-          marketCap: token.marketCap ? Number(token.marketCap) : null,
-          holderCount: token.holderCount,
-          volume24h: token.volume24h ? Number(token.volume24h) : null,
-          firstObservedAt: token.firstObservedAt.toISOString(),
-          updatedAt: token.updatedAt.toISOString(),
+          mint: token?.mint ?? mint,
+          symbol: token?.symbol ?? m?.symbol ?? mint.slice(0, 4),
+          name: token?.name ?? m?.name ?? mint,
+          decimals: token?.decimals ?? m?.decimals ?? 6,
+          priceUsd,
+          marketCap,
+          holderCount,
+          volume24h,
+          firstObservedAt: token?.firstObservedAt?.toISOString() ?? new Date().toISOString(),
+          updatedAt: token?.updatedAt?.toISOString() ?? new Date().toISOString(),
         }
       : null,
     activity: {
@@ -95,14 +104,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ mint: stri
       sellers: Number(sellersRow?.n ?? 0),
     },
     community: {
-      holders: token?.holderCount ?? 0,
+      holders: holderCount,
       holdersDelta:
         statsRow && statsRow.holderCount !== null && Number(statsRow.holderCount) > 0
-          ? (token?.holderCount ?? 0) - Number(statsRow.holderCount)
+          ? holderCount - Number(statsRow.holderCount)
           : null,
       buyers1h: statsRow ? Number(statsRow.buyers1h ?? 0) : 0,
       sellers1h: statsRow ? Number(statsRow.sellers1h ?? 0) : 0,
-      volume24h: token?.volume24h ? Number(token.volume24h) : null,
+      volume24h,
       verifiedBuyers,
     },
     recentActivity: recent.map((r) => ({
