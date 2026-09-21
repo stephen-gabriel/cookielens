@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BarChart3, ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { searchFungibleAssets, type DasAsset } from "@/lib/das";
-import { getCookMarketData, type CookMarketData } from "@/lib/pricing";
+import { getCookMarketData, getSwapMarkets, type CookMarketData } from "@/lib/pricing";
 import { TokenImage } from "@/components/portfolio/HoldingsTable";
 import { formatCompact, formatPct, formatUsd } from "@/lib/format";
 
@@ -52,7 +52,11 @@ export default function TokensPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [assets, market] = await Promise.all([searchFungibleAssets(undefined, 500), getCookMarketData()]);
+        const [assets, market, markets] = await Promise.all([
+          searchFungibleAssets(undefined, 500),
+          getCookMarketData(),
+          getSwapMarkets(),
+        ]);
         const seen = new Set<string>();
         const list: Row[] = [];
         for (const a of assets) {
@@ -61,6 +65,13 @@ export default function TokensPage() {
           if (a.content.metadata.symbol === "COOK" || a.id.startsWith("36ZrtQ")) continue;
           const row = toRow(a);
           if (row.holderCount === 0) continue;
+          const m = markets.get(a.id);
+          if (m) {
+            row.priceUsd = m.priceUsd ?? row.priceUsd;
+            row.marketCapUsd = m.marketCap ?? row.marketCapUsd;
+            row.change24h = m.change24h ?? row.change24h;
+            row.volumeUsd = m.volume24h ?? row.volumeUsd;
+          }
           list.push(row);
         }
         list.sort((x, y) => y.holderCount - x.holderCount);
@@ -171,7 +182,7 @@ export default function TokensPage() {
                         </Link>
                       </td>
                       <td className="w-24 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.priceUsd)}</td>
-                      <td className="w-20 px-2 py-2.5 text-right font-mono text-secondary sm:px-4 sm:py-3">{formatPct(r.change24h)}</td>
+                      <td className={`w-20 px-2 py-2.5 text-right font-mono sm:px-4 sm:py-3 ${r.change24h !== null && r.change24h !== undefined && r.change24h > 0 ? "text-primary" : r.change24h !== null && r.change24h !== undefined && r.change24h < 0 ? "text-error" : "text-secondary"}`}>{formatPct(r.change24h)}</td>
                       <td className="w-28 px-2 py-2.5 text-right font-mono text-text-primary sm:px-4 sm:py-3">{formatUsd(r.marketCapUsd)}</td>
                       <td className="w-20 px-2 py-2.5 text-right font-mono text-text-secondary sm:px-4 sm:py-3">
                         {r.holderCount > 0 ? formatCompact(r.holderCount) : "—"}
